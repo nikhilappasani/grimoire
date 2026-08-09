@@ -579,6 +579,13 @@ The Compendium repo's own CI takes it from there: it validates the capture's str
 secret scan with gitleaks, and opens the pull request. **A human reviews and merges. Nothing in this
 pipeline ever merges, closes, or approves anything.**
 
+> **One-time setup on the Compendium repo.** GitHub disables PR-creation by Actions **by default**,
+> so the `open-pr` job fails until you enable it once, under
+> **Settings → Actions → General → Workflow permissions**: select *Read and write permissions* and
+> tick *Allow GitHub Actions to create and approve pull requests*. Until then, pushes and checks
+> still work — only the automatic PR doesn't, and the job says so. You can also just open the PR
+> yourself from the compare URL the publish prints.
+
 ### Why there's no `gh` requirement
 
 Opening a pull request needs a GitHub API token. Asking every expert who sits for an interview to
@@ -794,9 +801,15 @@ one slug, so it refuses rather than sweeping your other work into the commit. Co
 discard those changes first.
 
 **The PR didn't appear after a successful push**
-The push succeeded; the Compendium repo's CI opens the PR. Check the repo's Actions tab — a failing
-structure or gitleaks check blocks the `open-pr` job on purpose. The publish output also prints a
-compare URL you can use to open the PR by hand.
+The push succeeded; the Compendium repo's CI opens the PR. Check the repo's Actions tab.
+
+By far the most common cause on a new repo is that GitHub blocks Actions from creating pull requests
+**by default**. Fix it once under **Settings → Actions → General → Workflow permissions**: select
+*Read and write permissions*, tick *Allow GitHub Actions to create and approve pull requests*, then
+re-run the failed job. Nothing needs re-pushing — the branch is already on the remote.
+
+Otherwise, a failing structure or gitleaks check blocks the `open-pr` job on purpose. Either way the
+publish output prints a compare URL you can use to open the PR by hand.
 
 **The interview feels too long**
 It is a real interview. You can stop and resume, or tell it to focus on specific sections. If a
