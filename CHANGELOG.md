@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.4.1
+
+### Fixed
+
+- **LoreWeaver handed the publish command back to the user instead of running it.** Found by testing
+  a real interview: at close it printed `grimoire compendium-push <slug>` as a next step, which
+  defeats the entire premise — the user answers questions and approves, and types nothing.
+
+  The cause was wording, not staleness or tooling. Step 7 said "Run `grimoire compendium-push <slug>
+  --review`", which reads as easily as "this command gets run" as it does "you run it", and
+  publishing feels like a user's decision, so handing it over is the natural misreading. There were
+  five `NEVER` walls and none of them forbade delegating, while the README already promised "You
+  don't type it" — a guarantee nothing in the skill actually made.
+
+  - New wall: **NEVER ask the user to run a `grimoire` command.** YOU execute every one.
+  - Step 7 names the actor in every clause rather than describing commands in the abstract.
+  - `OUTPUT-CONTRACT.md` §3 states the reasoning and the failure mode: report, do not delegate.
+
+  Anyone on 0.4.0 from the registry has this bug; 0.4.1 is the fix.
+
 ## 0.4.0
 
 ### Added

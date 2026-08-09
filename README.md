@@ -69,7 +69,7 @@ skip straight to the code and the specification would become a formality nobody 
 
 ## What's in the box
 
-**v0.4.0 — LoreWeaver only.**
+**v0.4.1 — LoreWeaver only.**
 
 LoreWeaver is a structured interview. It asks one question at a time, adapts its questions to the
 kind of work you're describing, and refuses to make things up. When it doesn't know something, it
@@ -463,7 +463,7 @@ feed it to an agent as the ground truth for building something. Same files, thre
 
 ```json
 {
-  "contentVersion": "0.4.0",
+  "contentVersion": "0.4.1",
   "specVersion": "0.2.0",
   "roots": {
     "specs": "./specs",
@@ -633,12 +633,12 @@ Everyone stays on the same version, and improvements flow through git like any o
 For someone who can't reach your git host:
 
 ```bash
-npm pack                 # produces nikhilappasani-grimoire-0.4.0.tgz
+npm pack                 # produces nikhilappasani-grimoire-0.4.1.tgz
 ```
 
 ```bash
 # They run:
-npm install -g ./nikhilappasani-grimoire-0.4.0.tgz
+npm install -g ./nikhilappasani-grimoire-0.4.1.tgz
 grimoire sync
 grimoire install --target claude-code --home
 ```
@@ -822,4 +822,4 @@ question genuinely doesn't apply, say so — it'll mark it and move on.
 
 ---
 
-**v0.4.0** · Node ≥ 20 · zero runtime dependencies · [MIT](./LICENSE) · see [CHANGELOG.md](./CHANGELOG.md)
+**v0.4.1** · Node ≥ 20 · zero runtime dependencies · [MIT](./LICENSE) · see [CHANGELOG.md](./CHANGELOG.md)

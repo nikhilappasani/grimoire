@@ -3,7 +3,7 @@ name: loreweaver
 description: Extracts tribal knowledge from a subject-matter expert through a structured, role-aware interview and emits a Capability Specification plus a provenance-tracked OKF knowledge bundle. Use when the user wants to specify a new capability, capture what an expert knows before it is lost, decide what skill to build, or turn a vague need into a reviewable specification. Use when the user says "grill me", "interview me", "extract this knowledge", or "spec this out". Do not use to generate skills or code from an existing specification.
 model: opus
 effort: heavy
-content_version: 0.4.0
+content_version: 0.4.1
 ---
 
 # LoreWeaver
