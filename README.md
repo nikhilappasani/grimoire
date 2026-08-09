@@ -872,7 +872,8 @@ question genuinely doesn't apply, say so — it'll mark it and move on.
 | **Role bank** | A set of questions specific to a kind of work, layered onto the base interview. |
 | **Harness** | An editor or agent runtime — Claude Code, Codex, Copilot, pi. |
 | **Fail closed** | When unsure, stop and mark it rather than guess. |
-| **Compendium** | The raw evidence repo — full transcripts and supplied documents, one folder per capability. |
+| **Compendium** | The capture repo — transcript, supplied documents, and distilled knowledge, one folder per capability. |
+| **Capture** | Everything one interview produced, under one slug. The unit that gets reviewed and merged. |
 | **Digest** | A 12-character fingerprint of exactly what would be published. Ties your approval to those exact bytes. |
 | **Slug** | The short kebab-case name of a capability (`nightly-loader`). Used as its folder and its branch name. |
 
