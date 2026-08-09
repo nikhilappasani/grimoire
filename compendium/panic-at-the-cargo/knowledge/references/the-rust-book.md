@@ -1,5 +1,5 @@
 ---
-type: Runbook
+type: Reference
 title: The Rust Programming Language (The Rust Book)
 description: The official, free, comprehensive introduction to Rust — the canonical first reference
 why: Every Rust learner starts here; PAC cites it for foundational concepts and chapter-level guidance

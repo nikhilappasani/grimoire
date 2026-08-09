@@ -5,7 +5,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseFrontmatter } from '../lib/frontmatter.js';
-import { validateConcept, verifyVocabularyAgainstDoc, TYPE_VOCABULARY } from '../lib/okf.js';
+import {
+  validateConcept,
+  verifyVocabularyAgainstDoc,
+  checkPlacement,
+  TYPE_VOCABULARY,
+  TYPE_DIRECTORIES,
+} from '../lib/okf.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES = path.join(HERE, 'fixtures', 'okf');
@@ -77,4 +83,42 @@ test('missing provenance fields are warnings, not errors', () => {
   assert.deepEqual(errors, []);
   assert.ok(warnings.some((w) => /source_system/.test(w)));
   assert.ok(warnings.some((w) => /resource/.test(w)));
+});
+
+test('every type in the vocabulary has a directory, and no directory is orphaned', () => {
+  // A type with no directory would be unplaceable; a directory with no type would be a folder the
+  // gate accepts but nothing can legitimately fill. Both are how invented folders creep back in.
+  assert.deepEqual(Object.keys(TYPE_DIRECTORIES).sort(), [...TYPE_VOCABULARY].sort());
+  const dirs = Object.values(TYPE_DIRECTORIES);
+  assert.equal(new Set(dirs).size, dirs.length, 'two types must not share a directory');
+});
+
+test('placement is correct when the directory matches the type', () => {
+  assert.equal(checkPlacement('references/the-rust-book.md', 'Reference'), null);
+  assert.equal(checkPlacement('playbooks/hint-escalation.md', 'Playbook'), null);
+  assert.equal(checkPlacement(path.join('glossary', 'term.md'), 'Glossary Term'), null);
+});
+
+test('a concept in the wrong directory is an error naming both directories', () => {
+  // The real case: an interview invented protocols/ for a Playbook.
+  const message = checkPlacement('protocols/hint-escalation.md', 'Playbook');
+  assert.match(message, /protocols\//);
+  assert.match(message, /playbooks\//);
+});
+
+test('a concept at the bundle root is an error, since the path is its identity', () => {
+  assert.match(checkPlacement('hint-escalation.md', 'Playbook'), /bundle root/);
+});
+
+test('placement says nothing about an unknown type — validateConcept already reports it', () => {
+  // Otherwise one mistake produces two errors and the actionable one gets buried.
+  assert.equal(checkPlacement('books/the-rust-book.md', 'Book'), null);
+});
+
+test('Reference is a valid type, so a cited book need not masquerade as a Runbook', () => {
+  const { errors } = validateConcept({
+    data: { type: 'Reference', sensitivity: 'public', resource: 'https://doc.rust-lang.org/book/', source_system: 'Public docs' },
+    body: '# The Rust Book\n\nThe canonical introduction.\n',
+  });
+  assert.deepEqual(errors, []);
 });

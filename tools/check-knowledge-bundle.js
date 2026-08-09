@@ -17,7 +17,7 @@ import path from 'node:path';
 
 import { parseFrontmatter } from './lib/frontmatter.js';
 import { findBrokenLinks } from './lib/links.js';
-import { validateConcept, verifyVocabularyAgainstDoc } from './lib/okf.js';
+import { validateConcept, verifyVocabularyAgainstDoc, checkPlacement } from './lib/okf.js';
 import { Report, parseFlags } from './lib/report.js';
 
 const OKF_DOC_RELATIVE = path.join(
@@ -128,6 +128,9 @@ function main() {
       for (const message of errors) report.error(label, message);
       for (const message of warnings) report.warn(label, message);
       for (const message of notices) report.notice(label, message);
+
+      const misplaced = checkPlacement(path.relative(dir, conceptPath), String(parsed.data.type ?? '').trim());
+      if (misplaced) report.error(label, misplaced);
 
       for (const broken of findBrokenLinks(conceptPath, source)) {
         report.error(label, `Broken relative link (${broken.reason}): ${broken.target}`, broken.line);

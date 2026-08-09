@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.5.0
+
+### Changed — breaking
+
+- **An interview now writes everything under one compendium slug.** Concepts go to
+  `compendium/<slug>/knowledge/` next to the transcript and documents they were drawn from, instead
+  of to a shared `knowledge/` root.
+
+  Reported from a real capture: a Rust interview put eight external sources into
+  `knowledge/references/` in the tooling repo, with no indication which capability they belonged to.
+  Two interviews in, a shared root with no per-capture boundary becomes unreadable — and a reviewer
+  checking whether a concept is right needs the transcript line it came from and the document that
+  backs it, which lived in a different repository.
+
+- **The `knowledge` root is now downstream and nothing writes to it at capture time.** It is filled
+  by the build step, when an approved capture becomes a skill. The shared base stays curated by
+  construction instead of accumulating drafts from captures nobody merged. The root still resolves
+  and a running skill still reads from it.
+
+  The build step does not exist yet, so today the shared root stays empty. That is the correct
+  state, not a gap.
+
+### Added
+
+- **`Reference` type.** For an external source of truth the capability cites but does not own — a
+  book, a specification, a docs site. Without it, the Rust capture filed *The Rust Book* as a
+  `Runbook` and the cheat sheet as a `Glossary Term`, because the vocabulary offered nowhere better.
+  That gap is also why the interview invented a `references/` directory.
+
+- **Folder-to-type enforcement.** `check-knowledge-bundle.js` now errors when a concept's directory
+  disagrees with its `type`, against the mapping in `KNOWLEDGE-CAPTURE-OKF.md` §2. A concept's path
+  is its identity, and the previous gate validated the type vocabulary while ignoring paths
+  entirely — so a bundle with two invented directories passed with zero errors.
+
+### Fixed
+
+- **The Rust capture migrated to the new shape**: eight sources retyped `Runbook`/`Glossary Term` →
+  `Reference`, the invented `protocols/` folded into `playbooks/` where its `Playbook` type belongs,
+  and the `documents/README.md` links repointed — they used `../../../knowledge/`, which resolved
+  only inside the Grimoire repo and was already broken on the published branch.
+
+- **The Compendium repo's structure gate** accepts `<slug>/knowledge/**`; it would otherwise have
+  rejected every capture written in the new shape.
+
 ## 0.4.1
 
 ### Fixed

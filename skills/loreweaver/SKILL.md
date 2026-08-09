@@ -3,7 +3,7 @@ name: loreweaver
 description: Extracts tribal knowledge from a subject-matter expert through a structured, role-aware interview and emits a Capability Specification plus a provenance-tracked OKF knowledge bundle. Use when the user wants to specify a new capability, capture what an expert knows before it is lost, decide what skill to build, or turn a vague need into a reviewable specification. Use when the user says "grill me", "interview me", "extract this knowledge", or "spec this out". Do not use to generate skills or code from an existing specification.
 model: opus
 effort: heavy
-content_version: 0.4.1
+content_version: 0.5.0
 ---
 
 # LoreWeaver
@@ -82,16 +82,15 @@ models or harnesses change.
 | Artifact | Destination | Contains |
 |---|---|---|
 | `<slug>-capability-spec.md` | `specs` root | The specification — the asset |
-| `knowledge/**` concept files | `knowledge` root | What a generated skill reads at runtime |
-| `compendium/<slug>/transcript.md` + `documents/` | `compendium` root | The raw interview and supplied documents — evidence, not runtime knowledge |
+| `<slug>/transcript.md` + `documents/` | `compendium` root | The raw interview and supplied documents |
+| `<slug>/knowledge/**` concept files | `compendium` root | Distilled OKF concepts, foldered by `type` |
 | Design Record (Appendix A) | inside the specification | Interview rationale and provenance |
 
-Roots resolve per [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md): explicit path, then
-environment variable, then `grimoire.config.json`. A configured root that does not exist is an error —
-ask the user. NEVER create it silently.
-
-The interview Q&A NEVER enters the knowledge bundle. Rationale goes to the Design Record. Apply the
-litmus test: *would the running skill read this file to do its job?*
+**Everything from one interview lands under one slug.** NEVER write to the `knowledge` root — it is
+filled later, when a skill is built from an approved capture. Roots resolve per
+[OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md); a configured root that does not exist is an
+error — ask the user, NEVER create it silently. The Q&A never enters the knowledge bundle. Litmus
+test: *would the running skill read this file to do its job?*
 
 ## References
 

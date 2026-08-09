@@ -1,5 +1,5 @@
 ---
-type: Runbook
+type: Reference
 title: Zero to Production in Rust (Palmieri)
 description: End-to-end guide to building and shipping a production Rust web API — project-driven and opinionated
 why: Shows what real-world Rust projects look like at production scale; raises the ceiling for learners who want to go beyond toy programs

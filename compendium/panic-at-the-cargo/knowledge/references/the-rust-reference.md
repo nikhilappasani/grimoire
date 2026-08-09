@@ -1,5 +1,5 @@
 ---
-type: Runbook
+type: Reference
 title: The Rust Reference
 description: Authoritative formal specification of the Rust language — syntax, semantics, and behaviour
 why: When The Rust Book's explanation isn't precise enough, the Reference is the ground truth

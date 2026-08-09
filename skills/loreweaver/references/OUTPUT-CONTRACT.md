@@ -23,27 +23,29 @@ URL) is set in `grimoire.config.json`, the publish script maintains its own mana
 nothing the user configured is missing. It is what makes a zero-setup machine work: the user answers
 questions, and the tooling handles where the repository lives.
 
-`knowledge` is expected to point at a **separate knowledge-base repository** of distilled OKF
-concepts. `compendium` is expected to point at a **separate evidence repository** — the raw
-interview transcript and the source documents the user supplied, one folder per capability, kept as
-plain markdown and original file formats so a personal knowledge vault or a downstream tool (e.g. a
-future skill generator) can consume the folder directly.
+`compendium` is expected to point at a **separate capture repository**. Everything one interview
+produces lands under a single slug there: the raw transcript, the documents the user supplied, and
+the OKF concepts distilled from them. A capture is then reviewable as one unit, rather than split
+across two repositories that must be read side by side for either to make sense.
 
-**These are deliberately not the same root.** `knowledge/` holds small, distilled, curated concept
-files meant to be read by a running skill. `compendium/` holds the bulkier, unprocessed evidence
-those concepts were drawn from — it does not go through OKF distillation, and its growth profile is
-expected to be larger and messier. Mixing them would drag the knowledge base's git history and
-Obsidian-browsing experience down with document churn that has nothing to do with it.
+**NEVER write to the `knowledge` root.** It is the *downstream* destination: when a skill is later
+built from an approved capture, its concepts are promoted there. Keeping capture separate from
+promotion means the shared knowledge base stays curated by construction, instead of accumulating
+every draft concept from every interview — including the ones from captures nobody merged.
+
+The `knowledge` root still resolves, and a running skill still reads from it. It is simply not
+something this skill writes to.
 
 ## 2. What goes where
 
 | Artifact | Root | Rule |
 |---|---|---|
 | `<slug>-capability-spec.md` | `specs` | One file per capability. Never overwrite — see the collision rule in [CAPABILITY-SPEC-TEMPLATE.md](./CAPABILITY-SPEC-TEMPLATE.md) §1. |
-| Concept files | `knowledge` | One concept per file. Path is the concept's identity. Distilled — see [KNOWLEDGE-CAPTURE-OKF.md](./KNOWLEDGE-CAPTURE-OKF.md). |
 | Interview transcript | `compendium/<slug>/transcript.md` | The full Q&A, verbatim, in question order. Written once, at close — see §5. |
-| Supplied source documents | `compendium/<slug>/documents/` | Stored as provided, one subdirectory per capability. Concepts in `knowledge/` link here rather than duplicating the content. |
-| Design Record | inside the specification | Appendix A. NEVER in `knowledge/` or `compendium/`. Its "Raw transcript" field records the `compendium/<slug>/transcript.md` path. |
+| Supplied source documents | `compendium/<slug>/documents/` | Stored as provided. Concepts link here rather than duplicating the content. |
+| Concept files | `compendium/<slug>/knowledge/` | One concept per file; the directory is decided by the concept's `type` — see [KNOWLEDGE-CAPTURE-OKF.md](./KNOWLEDGE-CAPTURE-OKF.md) §2. |
+| Design Record | inside the specification | Appendix A. NEVER in `compendium/`. Its "Raw transcript" field records the `compendium/<slug>/transcript.md` path. |
+| — | `knowledge` root | **Nothing.** Written later by the build step, not by this skill. |
 
 ## 3. The compendium write and publish
 
@@ -56,6 +58,10 @@ At close, after the user approves the read-back (per
   Apply the same sensitivity rule as knowledge concepts: a document classified confidential, or
   containing secrets or personal data, is **never copied in** — write a short neutral note plus its
   `resource:` link instead.
+- `compendium/<slug>/knowledge/<type-directory>/<concept>.md` — the OKF concepts distilled from the
+  interview, one per file, in the directory its `type` dictates per
+  [KNOWLEDGE-CAPTURE-OKF.md](./KNOWLEDGE-CAPTURE-OKF.md) §2. NEVER invent a directory outside that
+  table, and NEVER write these to the `knowledge` root.
 
 Then publish. The user runs nothing, but they **approve the content first** — two commands:
 

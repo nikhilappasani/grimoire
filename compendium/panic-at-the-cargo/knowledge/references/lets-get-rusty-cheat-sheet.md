@@ -1,5 +1,5 @@
 ---
-type: Glossary Term
+type: Reference
 title: Let's Get Rusty Cheat Sheet v1.0.5
 description: Quick-reference card covering Rust's core syntax and concepts on one page
 why: Fastest lookup for syntax a learner half-remembers — PAC points here for immediate reminders before deeper book references

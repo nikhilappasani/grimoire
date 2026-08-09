@@ -1,5 +1,5 @@
 ---
-type: Runbook
+type: Reference
 title: Command-Line Rust (Youens-Clark)
 description: Project-based book teaching Rust by reimplementing Unix CLI tools — ideal for project-driven learners
 why: Matches PAC's project-first philosophy exactly; learner builds real programs chapter by chapter

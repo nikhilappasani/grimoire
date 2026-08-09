@@ -1,5 +1,5 @@
 ---
-type: Runbook
+type: Reference
 title: Jon Gjengset — YouTube Channel
 description: Deep-dive live coding sessions on Rust internals, crate implementations, and standard library deep dives
 why: Video walkthroughs of real Rust code being written and explained — uniquely useful for visual learners hitting complex concepts

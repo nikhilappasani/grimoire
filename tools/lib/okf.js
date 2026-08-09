@@ -12,11 +12,52 @@ export const TYPE_VOCABULARY = [
   'Policy',
   'Playbook',
   'Runbook',
+  'Reference',
   'Diagram',
   'Process',
   'API',
   'Dataset',
 ];
+
+/**
+ * Which directory each `type` lives in — KNOWLEDGE-CAPTURE-OKF.md §2.
+ *
+ * A concept's path is its identity, so a path that disagrees with its type makes the folder tree
+ * lie about what it holds. This went unenforced and an interview promptly invented `references/`
+ * and `protocols/`, filing a book as a `Runbook` because the vocabulary offered nowhere better.
+ */
+export const TYPE_DIRECTORIES = {
+  'Glossary Term': 'glossary',
+  Policy: 'policies',
+  Playbook: 'playbooks',
+  Runbook: 'runbooks',
+  Reference: 'references',
+  Diagram: 'diagrams',
+  Process: 'processes',
+  API: 'apis',
+  Dataset: 'datasets',
+};
+
+/**
+ * Check a concept's directory against its declared type.
+ *
+ * @param {string} relativePath  concept path relative to the bundle root, e.g. "references/x.md"
+ * @param {string} type          the concept's declared `type`
+ * @returns {string|null} an error message, or null when the placement is correct
+ */
+export function checkPlacement(relativePath, type) {
+  const expected = TYPE_DIRECTORIES[type];
+  if (!expected) return null; // an unknown type is already reported by validateConcept
+
+  const segments = relativePath.split(/[/\\]/);
+  const actual = segments.length > 1 ? segments[0] : '';
+
+  if (actual === expected) return null;
+  if (actual === '') {
+    return `Concept of type "${type}" sits at the bundle root; it belongs in ${expected}/ (KNOWLEDGE-CAPTURE-OKF.md §2).`;
+  }
+  return `Concept of type "${type}" is in ${actual}/ but belongs in ${expected}/ (KNOWLEDGE-CAPTURE-OKF.md §2).`;
+}
 
 export const SOURCE_SYSTEMS = [
   'Local file',

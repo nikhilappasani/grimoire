@@ -95,9 +95,20 @@ section summarizes it for contributors; it does not restate the rules authoritat
 
 Roots are `specs`, `knowledge`, and `compendium`, each resolved from an explicit session path, then a
 `GRIMOIRE_*_ROOT` environment variable, then `grimoire.config.json`. A configured root that does not
-exist is a fail-closed error, never a silent `mkdir -p`. `compendium` holds the raw interview
-transcript and supplied documents — a separate, bulkier root from `knowledge`'s distilled concepts,
-on purpose (§8's confidential-is-link-only rule applies to both).
+exist is a fail-closed error, never a silent `mkdir -p`.
+
+**`compendium` receives everything an interview writes** — transcript, supplied documents, and the
+OKF concepts distilled from them, all under one `<slug>/`. A capture reviews as a single unit;
+splitting it would mean reading two repositories to check one claim.
+
+**`knowledge` is downstream and no skill writes to it during an interview.** It is filled by the
+build step, when an approved capture is turned into a skill, which keeps the shared base curated by
+construction rather than accumulating drafts from captures nobody merged.
+
+Inside a capture's `knowledge/`, a concept's directory is determined by its `type`
+(KNOWLEDGE-CAPTURE-OKF.md §2) and enforced by `check-knowledge-bundle.js`. A path is a concept's
+identity, so a folder that disagrees with its type is an error, not a style preference. §8's
+confidential-is-link-only rule applies everywhere.
 
 **A skill's relative links must never escape its own directory.** `lint-skills.js` enforces this.
 

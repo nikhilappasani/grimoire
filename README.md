@@ -69,20 +69,27 @@ skip straight to the code and the specification would become a formality nobody 
 
 ## What's in the box
 
-**v0.4.1 — LoreWeaver only.**
+**v0.5.0 — LoreWeaver only.**
 
 LoreWeaver is a structured interview. It asks one question at a time, adapts its questions to the
 kind of work you're describing, and refuses to make things up. When it doesn't know something, it
 writes `OPEN:` instead of guessing. When it infers something, it says so out loud and makes you
 confirm it.
 
-At the end you get:
+At the end you get **one capture folder holding everything that interview produced**, plus the
+specification:
 
-- **A Capability Specification** — a reviewable markdown document describing the capability.
-- **A knowledge bundle** — one markdown file per concept, each recording where the fact came from.
-- **The compendium** — the full transcript plus any documents you handed over, kept as raw evidence.
+```text
+compendium/<slug>/
+├── transcript.md      the full Q&A, verbatim
+├── documents/         the documents you handed over
+└── knowledge/         the facts, distilled — one file per concept
+```
 
-It then shows you that evidence and, once you approve it, opens a pull request on your team's
+- **A Capability Specification** — a reviewable markdown document, written to `specs/`.
+- **The capture** — transcript, documents, and knowledge, together under one slug.
+
+It then shows you the capture and, once you approve it, opens a pull request on your team's
 Compendium repository — no `gh` CLI, no tokens, nothing for you to set up. See
 [Publishing a capture](#publishing-a-capture).
 
@@ -256,10 +263,30 @@ An excerpt:
 Notice the outcomes are **checkable**. "Improves data quality" would be rejected; "flags columns
 before publish" can be verified.
 
-### 2. The knowledge bundle
+### 2. The capture folder
 
-One markdown file per fact, written into `knowledge/`. Each records what the fact is, why it matters,
-and where it came from:
+Everything one interview produced, under one slug:
+
+```text
+compendium/
+└── nightly-loader/
+    ├── transcript.md          the whole Q&A, verbatim, in order
+    ├── documents/             the runbook, the diagram — as supplied
+    └── knowledge/
+        ├── index.md
+        ├── references/        external sources the capability cites
+        ├── playbooks/         how things get done
+        └── policies/          what the rules are
+```
+
+**Why together?** Because a reviewer needs all three to judge any one of them. A concept claiming
+"records are held seven years" is only checkable against the transcript line where you said it and
+the policy document you supplied. Split across two repositories, a reviewer has to read them side by
+side for either to make sense.
+
+Inside `knowledge/`, one markdown file per fact. Each records what the fact is, why it matters, and
+where it came from — and **the folder is decided by the `type`**, so the tree never lies about what
+it holds:
 
 ```markdown
 ---
@@ -282,29 +309,22 @@ Records are held a minimum of seven years from close. See [Purge Playbook](../pl
 Every concept carries its provenance, so six months later you can trace any claim back to its source
 and check whether it's still true.
 
-### 3. The compendium — the raw evidence
+| `type` | Folder | For |
+|---|---|---|
+| `Glossary Term` | `glossary/` | What a term means |
+| `Policy` | `policies/` | What the rules are |
+| `Playbook` | `playbooks/` | How something gets done |
+| `Runbook` | `runbooks/` | Operational step-by-step |
+| `Reference` | `references/` | An external source you cite but don't own — a book, a spec, a docs site |
+| `Diagram` · `Process` · `API` · `Dataset` | `diagrams/` · `processes/` · `apis/` · `datasets/` | |
 
-Everything above is *distilled*. The compendium is what it was distilled from: the full interview,
-question by question, plus every document you supplied, stored as you gave it.
+The same sensitivity rule applies throughout: a confidential document is never copied in. It gets a
+short neutral note and a link to where it actually lives.
 
-```text
-compendium/
-└── nightly-loader/
-    ├── transcript.md      the whole Q&A, verbatim, in order
-    └── documents/         the runbook, the diagram, the spreadsheet — as supplied
-```
+This whole folder is what gets published for review — see
+[Publishing a capture](#publishing-a-capture).
 
-Why keep it separately from the knowledge base? Because they have opposite jobs. The knowledge base
-holds small, curated facts a skill reads while it runs, so it needs to stay clean. The compendium
-holds bulky, unfiltered material a *human* reads when they want to check whether a fact was captured
-correctly. Mixing them would bury the first in the second.
-
-The same sensitivity rule applies here: a confidential document is never copied in. It gets a short
-neutral note and a link to where it actually lives.
-
-This is the part that gets published for review — see [Publishing a capture](#publishing-a-capture).
-
-### 4. The Design Record
+### 3. The Design Record
 
 An appendix inside the specification holding the *reasoning* — decisions made, alternatives rejected,
 assumptions resolved. This is why the spec says what it says. It never enters the knowledge base,
@@ -409,11 +429,28 @@ what turns a folder of notes into a graph.
 - **Everything is attributed.** Every concept says where it came from.
 - **No real personal data, ever.** Examples are synthetic.
 
-### Where it lives
+### Where it lives — two stages
 
-By default, `knowledge/` inside this repo. In practice you'll want it in **its own repository**, so
-the knowledge outlives any one project and can be shared independently of the tooling. Point
-`roots.knowledge` at it (see [Configuration](#configuration)).
+This is the part worth understanding, because there are two homes and they mean different things.
+
+**1. At capture time → inside the capture folder.** An interview writes its concepts to
+`compendium/<slug>/knowledge/`, alongside the transcript they came from. Nothing goes to the shared
+knowledge base yet. Nothing is curated yet. It is a *draft*, under review.
+
+**2. When a skill gets built → promoted to the shared `knowledge/` root.** Concepts that survive
+review move into the shared base, where a running skill reads them and where the next interview can
+link to them instead of re-capturing them.
+
+Why the two stages? Because the shared base is only valuable if it's trustworthy. If every interview
+wrote straight into it, it would fill with unreviewed drafts and concepts from captures nobody ever
+merged. Promoting on build means **the shared base is curated by construction**.
+
+Point `roots.knowledge` at its own repository (see [Configuration](#configuration)) so it outlives
+any one project.
+
+> **Today, stage 2 has no tooling.** The build step that promotes concepts is the generator, which
+> isn't written yet. Until it exists, your captures accumulate under their slugs and the shared
+> `knowledge/` root stays empty — which is the correct state, not a bug.
 
 ## Obsidian sync
 
@@ -463,7 +500,7 @@ feed it to an agent as the ground truth for building something. Same files, thre
 
 ```json
 {
-  "contentVersion": "0.4.1",
+  "contentVersion": "0.5.0",
   "specVersion": "0.2.0",
   "roots": {
     "specs": "./specs",
@@ -480,8 +517,8 @@ feed it to an agent as the ground truth for building something. Same files, thre
 | Root | Holds |
 |---|---|
 | `specs` | Capability Specifications |
-| `knowledge` | The knowledge base — distilled facts, point this at your own repo |
-| `compendium` | The raw interview transcript and supplied documents, one folder per capability — bulkier and unprocessed on purpose, kept separate so it never bloats the knowledge base's history |
+| `compendium` | Capture folders — transcript, documents, and knowledge, one folder per capability. **Everything an interview writes goes here.** Point this at your own repo |
+| `knowledge` | The shared knowledge base a running skill reads. Filled by the build step when a capture is turned into a skill — **never written to during an interview** |
 
 Each resolves in this order, first hit wins:
 
@@ -640,12 +677,12 @@ Everyone stays on the same version, and improvements flow through git like any o
 For someone who can't reach your git host:
 
 ```bash
-npm pack                 # produces nikhilappasani-grimoire-0.4.1.tgz
+npm pack                 # produces nikhilappasani-grimoire-0.5.0.tgz
 ```
 
 ```bash
 # They run:
-npm install -g ./nikhilappasani-grimoire-0.4.1.tgz
+npm install -g ./nikhilappasani-grimoire-0.5.0.tgz
 grimoire sync
 grimoire install --target claude-code --home
 ```
@@ -679,9 +716,15 @@ works. Fine for a quick demo; you lose the ability to update it cleanly.
 
 ### Sharing knowledge, not just skills
 
-Keep the knowledge base in **its own repository** so colleagues can contribute facts without touching
-the tooling, and so the knowledge survives independently. Point everyone's
-`GRIMOIRE_KNOWLEDGE_ROOT` at their clone of it, and reviews of new knowledge happen as pull requests.
+Two repositories, both separate from the tooling:
+
+- **Compendium** — where every interview lands. Point everyone's `GRIMOIRE_COMPENDIUM_ROOT` (or
+  `compendiumRepository`) at it. Reviews happen as pull requests, opened automatically.
+- **Knowledge** — the curated base a running skill reads, filled by the build step. Point
+  `GRIMOIRE_KNOWLEDGE_ROOT` at it.
+
+Keeping both out of the tooling repo means colleagues contribute facts without touching Grimoire,
+and the knowledge survives independently of it.
 
 ## Working on Grimoire itself
 
@@ -702,7 +745,7 @@ grimoire/
 ### The checks
 
 ```bash
-npm test                # 75 tests: shared parsers, publish rules, and a real end-to-end push
+npm test                # 81 tests: shared parsers, publish rules, and a real end-to-end push
 npm run validate        # structure: manifests, frontmatter, naming, version lockstep
 npm run lint            # skill quality: description, body length, links, self-containment
 npm run check-knowledge # knowledge base: vocabulary, provenance, confidential-is-link-only
@@ -835,4 +878,4 @@ question genuinely doesn't apply, say so — it'll mark it and move on.
 
 ---
 
-**v0.4.1** · Node ≥ 20 · zero runtime dependencies · [MIT](./LICENSE) · see [CHANGELOG.md](./CHANGELOG.md)
+**v0.5.0** · Node ≥ 20 · zero runtime dependencies · [MIT](./LICENSE) · see [CHANGELOG.md](./CHANGELOG.md)

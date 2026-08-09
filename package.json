@@ -1,6 +1,6 @@
 {
   "name": "@nikhilappasani/grimoire",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Agent skills that turn tribal knowledge into governed, regenerable capability. LoreWeaver interviews a subject-matter expert and emits a Capability Specification plus an OKF knowledge bundle.",
   "type": "module",
   "license": "MIT",

@@ -30,8 +30,8 @@ Rust learning coach — guides learners through self-directed projects with dire
 | [Zero to Production in Rust](./references/zero-to-production-in-rust.md) | Web API / production projects |
 | [Let's Get Rusty Cheat Sheet](./references/lets-get-rusty-cheat-sheet.md) | Quick syntax reminders |
 
-### Protocols (how PAC behaves)
+### Playbooks (how PAC behaves)
 
 | Concept file | When to load |
 |---|---|
-| [Hint Escalation Protocol](./protocols/hint-escalation.md) | Every PAC response — always loaded |
+| [Hint Escalation Protocol](./playbooks/hint-escalation.md) | Every PAC response — always loaded |

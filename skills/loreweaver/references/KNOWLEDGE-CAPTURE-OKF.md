@@ -24,21 +24,48 @@ Format background: <https://cloud.google.com/blog/products/data-analytics/how-th
 
 ## 2. Bundle shape
 
+The bundle is written **inside the capability's compendium folder**, next to the evidence it was
+distilled from — never into a shared `knowledge/` root:
+
 ```text
-knowledge/
-├── index.md                    # entry point / progressive disclosure
-├── glossary/
-│   ├── index.md
-│   └── <term>.md               # one concept per file
-├── policies/
-│   └── <policy>.md
-├── playbooks/
-│   └── <playbook>.md
-└── log.md                      # chronological change history (optional)
+compendium/<slug>/
+├── transcript.md               # the raw interview
+├── documents/                  # source documents as supplied
+└── knowledge/
+    ├── index.md                # entry point / progressive disclosure
+    ├── glossary/<term>.md      # one concept per file
+    ├── policies/<policy>.md
+    ├── playbooks/<playbook>.md
+    ├── references/<source>.md
+    └── log.md                  # chronological change history (optional)
 ```
 
+**Everything one interview produces travels together under one slug.** A capture is then reviewable
+as a single unit — transcript, sources, and the concepts drawn from them — instead of landing in two
+repositories that must be read side by side to make sense of either.
+
+The shared `knowledge/` root still exists, but nothing writes to it at capture time. It is the
+**downstream** destination: when a skill is built from an approved capture, its concepts are promoted
+there. That keeps the shared base curated by construction rather than accumulating every draft
+concept from every interview.
+
+**The subdirectory is decided by the concept's `type`** — this mapping is enforced by
+`check-knowledge-bundle.js`, because a path that disagrees with its type makes the folder tree lie:
+
+| `type` | Directory |
+|---|---|
+| `Glossary Term` | `glossary/` |
+| `Policy` | `policies/` |
+| `Playbook` | `playbooks/` |
+| `Runbook` | `runbooks/` |
+| `Reference` | `references/` |
+| `Diagram` | `diagrams/` |
+| `Process` | `processes/` |
+| `API` | `apis/` |
+| `Dataset` | `datasets/` |
+
 One concept per file. **The file path is the concept's identity** — moving a concept breaks every link
-to it, so choose the path deliberately.
+to it, so choose the path deliberately. NEVER invent a directory outside this table.
 
 ## 3. Concept file format
 
@@ -64,7 +91,13 @@ e.g. see [Retention Window](../policies/retention-window.md).>
 
 **`type` vocabulary — this list is authoritative.** Any other value is a validation error.
 
-`Glossary Term` · `Policy` · `Playbook` · `Runbook` · `Diagram` · `Process` · `API` · `Dataset`
+`Glossary Term` · `Policy` · `Playbook` · `Runbook` · `Reference` · `Diagram` · `Process` · `API` · `Dataset`
+
+`Reference` is for an **external source of truth** the capability depends on but does not own — a
+book, a specification, an official documentation site, a video series. Its body is a short neutral
+note on what the source covers and when to reach for it; the content itself stays behind the
+`resource:` link. Without this type, a cited book has to be mislabelled as a `Runbook`, which is how
+a bundle ends up lying about what it contains.
 
 `type` is the only field OKF strictly requires. The rest are house conventions that make the bundle
 queryable and traceable. `description` and `why` exist because a knowledge base that only says *what*
@@ -73,11 +106,13 @@ a thing is forces every future reader to re-derive *why* anyone wrote it down.
 ## 4. What is NOT knowledge
 
 The bundle holds only what a **generated skill would read at runtime**. These are artifacts, and they
-belong with the specification — never in `knowledge/`:
+never belong in `<slug>/knowledge/`:
 
-- The interview Q&A or transcript → the specification's **Design Record** appendix.
+- The interview Q&A or transcript → `<slug>/transcript.md`, and the specification's **Design Record**.
 - Design rationale, rejected alternatives, resolved assumptions → Design Record.
 - The Capability Specification itself → `specs/`.
+- Documents the user supplied verbatim → `<slug>/documents/`. A concept may cite one; it never
+  contains one.
 
 > **Litmus test:** *would the running skill read this file to do its job?*
 > Yes → knowledge. No, it is about how the skill was designed → artifact.

@@ -1,5 +1,5 @@
 ---
-type: Runbook
+type: Reference
 title: Rust for Rustaceans (Gjengset)
 description: Intermediate-to-advanced Rust book covering the concepts that trip up developers who already know the basics
 why: Bridges the gap between knowing Rust syntax and understanding why it works — essential for learners hitting intermediate walls
