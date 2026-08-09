@@ -24,6 +24,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
+import { parseArgs as parseArgv, argsError } from '../tools/lib/args.js';
+import { readConfig } from '../tools/lib/config.js';
+import { collectFiles } from '../tools/lib/fs-walk.js';
 import {
   scanForSecrets,
   parseRemoteUrl,
@@ -36,11 +39,18 @@ import {
 const MANAGED_DIR = path.join(os.homedir(), '.grimoire', 'compendium');
 const COMMIT_IDENTITY = ['-c', 'user.name=LoreWeaver (Grimoire)', '-c', 'user.email=loreweaver@grimoire.local'];
 
-class PublishError extends Error {}
-
-function parseArgs(argv) {
-  const args = {
-    slug: null,
+const ARG_SPEC = {
+  booleans: { '--auto': 'auto', '--dry-run': 'dryRun' },
+  values: {
+    '--root': 'root',
+    '--from': 'from',
+    '--base': 'base',
+    '--remote': 'remote',
+    '--branch-prefix': 'branchPrefix',
+    '-m': 'message',
+    '--message': 'message',
+  },
+  defaults: {
     root: null,
     from: null,
     base: 'main',
@@ -49,22 +59,24 @@ function parseArgs(argv) {
     message: null,
     auto: false,
     dryRun: false,
-  };
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === '--root') args.root = argv[++i];
-    else if (arg === '--from') args.from = argv[++i];
-    else if (arg === '--base') args.base = argv[++i];
-    else if (arg === '--remote') args.remote = argv[++i];
-    else if (arg === '--branch-prefix') args.branchPrefix = argv[++i];
-    else if (arg === '-m' || arg === '--message') args.message = argv[++i];
-    else if (arg === '--auto') args.auto = true;
-    else if (arg === '--dry-run') args.dryRun = true;
-    else if (arg.startsWith('-')) throw new PublishError(`Unknown flag: ${arg}`);
-    else if (args.slug === null) args.slug = arg;
-    else throw new PublishError(`Unexpected argument: ${arg} (one slug per invocation)`);
+  },
+};
+
+class PublishError extends Error {}
+
+/**
+ * Unknown flags are rejected rather than collected as positionals. A typo'd flag that fell through
+ * to the positional list would be read as the slug — the one argument that decides what gets
+ * published and under what branch name.
+ */
+function parseArgs(argv) {
+  const parsed = parseArgv(argv, ARG_SPEC);
+  const problem = argsError(parsed);
+  if (problem) throw new PublishError(problem);
+  if (parsed.positional.length > 1) {
+    throw new PublishError(`Unexpected argument: ${parsed.positional[1]} (one slug per invocation)`);
   }
-  return args;
+  return { ...parsed.flags, slug: parsed.positional[0] ?? null };
 }
 
 function git(cloneDir, gitArgs, { allowFail = false, identity = false } = {}) {
@@ -77,32 +89,6 @@ function git(cloneDir, gitArgs, { allowFail = false, identity = false } = {}) {
   return result;
 }
 
-/** Walk up from cwd to find grimoire.config.json, mirroring bin/grimoire.js resolveBase(). */
-function readConfig() {
-  let dir = process.cwd();
-  for (;;) {
-    const candidate = path.join(dir, 'grimoire.config.json');
-    if (fs.existsSync(candidate)) return JSON.parse(fs.readFileSync(candidate, 'utf8'));
-    const parent = path.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  // Fall back to the installed package's own config (global npm install, run from anywhere).
-  const packaged = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'grimoire.config.json');
-  if (fs.existsSync(packaged)) return JSON.parse(fs.readFileSync(packaged, 'utf8'));
-  return {};
-}
-
-function listFiles(dir, base = dir) {
-  const out = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...listFiles(full, base));
-    else out.push(path.relative(base, full));
-  }
-  return out;
-}
-
 async function confirmInteractively(promptText) {
   const { createInterface } = await import('node:readline/promises');
   const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -112,7 +98,6 @@ async function confirmInteractively(promptText) {
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
   const log = (line) => process.stdout.write(`  ${line}\n`);
 
   const steps = [
@@ -128,9 +113,15 @@ async function main() {
   let step = 0;
   let branch = null;
   let cloneDir = null;
+  // Captured so the failure report can name the retry command without re-parsing argv — re-parsing
+  // inside the catch would throw a second time for exactly the inputs that got us there.
+  let args = { slug: null };
 
   try {
     // ---- 1. resolve --------------------------------------------------------------------------
+    // Inside the try on purpose: a malformed flag must produce the same step report as any other
+    // failure, not an unhandled exception and a stack trace.
+    args = parseArgs(process.argv.slice(2));
     if (!args.slug) throw new PublishError('A slug is required: grimoire compendium-push <slug>');
     if (!isValidSlug(args.slug)) {
       throw new PublishError(`Invalid slug "${args.slug}" — lowercase kebab-case only, no separators.`);
@@ -208,13 +199,13 @@ async function main() {
       );
     }
 
-    const files = listFiles(effectiveSlugDir).map((relative) => path.join(args.slug, relative));
+    const files = collectFiles(effectiveSlugDir).map((relative) => path.join(args.slug, relative));
     steps[step].state = `ok — ${files.length} file(s)`;
 
     // ---- 4. secret scan ----------------------------------------------------------------------
     step = 3;
     const findings = scanForSecrets(
-      listFiles(effectiveSlugDir).map((relative) => ({
+      collectFiles(effectiveSlugDir).map((relative) => ({
         path: path.join(args.slug, relative),
         content: fs.readFileSync(path.join(effectiveSlugDir, relative), 'utf8'),
       }))
@@ -309,7 +300,7 @@ async function main() {
       process.stderr.write(
         `\nLocal state: the clone at ${cloneDir} is on branch ${branch}; your commit (if created) is intact.\n` +
           `Nothing was force-pushed and nothing was lost. Fix the cause and re-run:\n` +
-          `  grimoire compendium-push ${parseArgs(process.argv.slice(2)).slug ?? '<slug>'}\n`
+          `  grimoire compendium-push ${args.slug ?? '<slug>'}\n`
       );
     } else {
       process.stderr.write('\nYour artifacts remain untouched on disk. Fix the cause and re-run the same command.\n');

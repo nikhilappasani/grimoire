@@ -14,39 +14,19 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const HARNESS_HOMES = {
-  'claude-code': path.join('.claude', 'skills'),
-  codex: path.join('.codex', 'skills'),
-  copilot: path.join('.copilot', 'skills'),
-  pi: path.join('.pi', 'skills'),
-};
-
-const SOURCE_DIRS = {
-  'claude-code': '.claude/skills',
-  codex: '.codex/skills',
-  copilot: '.copilot/skills',
-  pi: '.pi/skills',
-};
+import { parseArgs, argsError } from '../tools/lib/args.js';
+import { collectFiles } from '../tools/lib/fs-walk.js';
+import { HARNESSES, harnessNames, isKnownHarness } from '../tools/lib/harnesses.js';
 
 const SANDBOX = '.grimoire-sandbox';
 
-class InstallError extends Error {}
+const ARG_SPEC = {
+  booleans: { '--home': 'home', '--dry-run': 'dryRun' },
+  values: { '--target': 'target', '--dest': 'dest', '--keep': 'keep' },
+  defaults: { target: null, dest: null, home: false, dryRun: false, keep: '3' },
+};
 
-function parseArgs(argv) {
-  const args = { target: null, dest: null, home: false, dryRun: false, keep: 3, root: '.' };
-  const positional = [];
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === '--target') args.target = argv[++i];
-    else if (arg === '--dest') args.dest = argv[++i];
-    else if (arg === '--home') args.home = true;
-    else if (arg === '--dry-run') args.dryRun = true;
-    else if (arg === '--keep') args.keep = Number.parseInt(argv[++i], 10);
-    else positional.push(arg);
-  }
-  if (positional[0]) args.root = positional[0];
-  return args;
-}
+class InstallError extends Error {}
 
 /**
  * `--target` becomes a path segment. An allow-list is the only sanitisation that cannot be defeated
@@ -54,13 +34,11 @@ function parseArgs(argv) {
  */
 function assertKnownTarget(target) {
   if (!target) {
-    throw new InstallError(
-      `--target is required. Known targets: ${Object.keys(HARNESS_HOMES).sort().join(', ')}`
-    );
+    throw new InstallError(`--target is required. Known targets: ${harnessNames().join(', ')}`);
   }
-  if (!Object.prototype.hasOwnProperty.call(HARNESS_HOMES, target)) {
+  if (!isKnownHarness(target)) {
     throw new InstallError(
-      `Unknown --target "${target}". Known targets: ${Object.keys(HARNESS_HOMES).sort().join(', ')}`
+      `Unknown --target "${target}". Known targets: ${harnessNames().join(', ')}`
     );
   }
 }
@@ -70,20 +48,10 @@ function resolveDestination(args, root) {
     throw new InstallError('Pass either --dest or --home, not both.');
   }
   if (args.dest) return { dir: path.resolve(args.dest), kind: 'explicit' };
-  if (args.home) return { dir: path.join(os.homedir(), HARNESS_HOMES[args.target]), kind: 'home' };
-  return { dir: path.join(root, SANDBOX, args.target, 'skills'), kind: 'sandbox' };
-}
-
-function collectFiles(dir, base = dir) {
-  const out = [];
-  for (const entry of fs
-    .readdirSync(dir, { withFileTypes: true })
-    .sort((a, b) => a.name.localeCompare(b.name))) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...collectFiles(full, base));
-    else out.push(path.relative(base, full));
+  if (args.home) {
+    return { dir: path.join(os.homedir(), HARNESSES[args.target].dir), kind: 'home' };
   }
-  return out;
+  return { dir: path.join(root, SANDBOX, args.target, 'skills'), kind: 'sandbox' };
 }
 
 /** Rotate previous installs so a bad install is recoverable. Oldest beyond `keep` are removed. */
@@ -110,8 +78,9 @@ function backupAndRotate(destDir, keep, dryRun, log) {
 }
 
 function main() {
-  const args = parseArgs(process.argv.slice(2));
-  const root = path.resolve(args.root);
+  const parsedArgs = parseArgs(process.argv.slice(2), ARG_SPEC);
+  const args = parsedArgs.flags;
+  const root = path.resolve(parsedArgs.positional[0] ?? '.');
   const log = (line) => process.stdout.write(`  ${line}\n`);
 
   // Each step records its own outcome. A mid-run failure must never leave the user guessing which
@@ -124,12 +93,18 @@ function main() {
 
   let step = 0;
   try {
+    const problem = argsError(parsedArgs);
+    if (problem) throw new InstallError(problem);
+
     assertKnownTarget(args.target);
-    if (!Number.isInteger(args.keep) || args.keep < 0) {
+    // Parsed here rather than in the arg spec: the spec deals in strings, and a bad --keep must
+    // report itself as a validation failure, not arrive silently as NaN.
+    const keep = Number.parseInt(args.keep, 10);
+    if (!Number.isInteger(keep) || keep < 0) {
       throw new InstallError('--keep must be a non-negative integer.');
     }
 
-    const sourceDir = path.join(root, SOURCE_DIRS[args.target]);
+    const sourceDir = path.join(root, HARNESSES[args.target].dir);
     if (!fs.existsSync(sourceDir)) {
       throw new InstallError(
         `No generated artifacts at ${path.relative(root, sourceDir)}. Run \`grimoire sync\` first.`
@@ -153,7 +128,7 @@ function main() {
     }
 
     step = 1;
-    backupAndRotate(destination.dir, args.keep, args.dryRun, log);
+    backupAndRotate(destination.dir, keep, args.dryRun, log);
     steps[step].state = 'ok';
 
     step = 2;

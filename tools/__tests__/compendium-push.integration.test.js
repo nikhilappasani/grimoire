@@ -153,6 +153,21 @@ test('missing transcript is rejected at import, and a missing slug is a clear er
   assert.match(badSlug.stderr, /Invalid slug/);
 });
 
+test('a malformed flag fails as a reported step, not an unhandled exception', (t) => {
+  // Argument parsing used to run before the try block, so a typo'd flag bypassed the step report
+  // and printed a raw Node stack trace — from the one script whose contract is that every failure
+  // says which step failed and what state the clone is in.
+  const { clone } = makeRepoPair(t);
+
+  for (const argv of [['slug', '--bogus'], ['slug', '--base'], ['a', 'b', '--auto']]) {
+    const result = runPush(clone, argv);
+    assert.equal(result.status, 1, `${argv.join(' ')} should fail`);
+    assert.match(result.stderr, /grimoire compendium-push: FAILED/);
+    assert.match(result.stderr, /1\. resolve:\s+FAILED/);
+    assert.ok(!result.stderr.includes('at main'), `${argv.join(' ')} leaked a stack trace`);
+  }
+});
+
 test('the CLI dispatcher never injects a default path as the slug', () => {
   // Regression guard for withDefaultPath: every other command gets a default positional appended;
   // compendium-push must instead fail with "slug required", not receive the repo root as a slug.

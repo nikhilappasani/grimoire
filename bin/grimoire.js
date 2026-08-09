@@ -4,12 +4,10 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.join(HERE, '..');
+import { parseArgs } from '../tools/lib/args.js';
+import { PACKAGE_ROOT as ROOT, resolveBase } from '../tools/lib/config.js';
 
 const COMMANDS = {
   sync: 'scripts/sync-skills.js',
@@ -20,37 +18,28 @@ const COMMANDS = {
   'check-knowledge': 'tools/check-knowledge-bundle.js',
 };
 
-/** Flags that consume the argument after them — needed to tell a flag value from a positional. */
-const VALUE_FLAGS = new Set([
-  '--harness', '--target', '--dest', '--keep',
-  '--root', '--from', '--base', '--remote', '--branch-prefix', '-m', '--message',
-]);
-
 /**
- * Installed globally, the working directory is wherever the user happens to be — usually not a
- * grimoire repo. Prefer a grimoire repo at or above the cwd; otherwise operate on the installed
- * package itself, so `grimoire sync` works from anywhere.
+ * Every flag across every subcommand that consumes the argument after it — needed to tell a flag's
+ * value from a positional. The dispatcher deliberately does not know which flags belong to which
+ * subcommand: it only decides whether to append a default path, and each script validates its own
+ * arguments. An unrecognized flag is therefore passed through untouched, not rejected here.
  */
-function resolveBase() {
-  let dir = process.cwd();
-  for (;;) {
-    if (fs.existsSync(path.join(dir, 'grimoire.config.json'))) return dir;
-    const parent = path.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  return ROOT;
-}
+const VALUE_FLAGS = {
+  '--harness': 'harness',
+  '--target': 'target',
+  '--dest': 'dest',
+  '--keep': 'keep',
+  '--root': 'root',
+  '--from': 'from',
+  '--base': 'base',
+  '--remote': 'remote',
+  '--branch-prefix': 'branchPrefix',
+  '-m': 'message',
+  '--message': 'message',
+};
 
 function hasPositional(args) {
-  for (let i = 0; i < args.length; i++) {
-    if (VALUE_FLAGS.has(args[i])) {
-      i++;
-      continue;
-    }
-    if (!args[i].startsWith('-')) return true;
-  }
-  return false;
+  return parseArgs(args, { values: VALUE_FLAGS }).positional.length > 0;
 }
 
 /** Supply the command's default target when the user gave none. */

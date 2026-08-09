@@ -3,6 +3,8 @@
  * Errors fail the run. Warnings and notices never do.
  */
 
+import { parseArgs } from './args.js';
+
 export class Report {
   constructor(toolName) {
     this.toolName = toolName;
@@ -64,13 +66,17 @@ export class Report {
   }
 }
 
-/** Minimal flag parsing shared by the validators. */
+/**
+ * Flag parsing for the validators, over the shared parser in `args.js`.
+ *
+ * Validators are non-strict on purpose: they are run by `preflight` and by CI wrappers that may
+ * pass flags this build does not know, and refusing to validate because of an unrecognized flag
+ * would turn a cosmetic mismatch into a red build.
+ */
 export function parseFlags(argv) {
-  const flags = { json: false, quiet: false, positional: [] };
-  for (const arg of argv) {
-    if (arg === '--json') flags.json = true;
-    else if (arg === '--quiet') flags.quiet = true;
-    else flags.positional.push(arg);
-  }
-  return flags;
+  const { flags, positional } = parseArgs(argv, {
+    booleans: { '--json': 'json', '--quiet': 'quiet' },
+    defaults: { json: false, quiet: false },
+  });
+  return { ...flags, positional };
 }

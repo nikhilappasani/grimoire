@@ -16,65 +16,53 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const HARNESS_TARGETS = {
-  'claude-code': { dir: '.claude/skills', prompts: false },
-  codex: { dir: '.codex/skills', prompts: false },
-  copilot: { dir: '.copilot/skills', prompts: false },
-  pi: { dir: '.pi/skills', prompts: true },
-};
+import { parseArgs, argsError } from '../tools/lib/args.js';
+import { collectFiles } from '../tools/lib/fs-walk.js';
+import { parseFrontmatter } from '../tools/lib/frontmatter.js';
+import { HARNESSES, harnessNames, isKnownHarness } from '../tools/lib/harnesses.js';
 
 const BANNER = (skillName) =>
   `<!-- GENERATED FILE — DO NOT EDIT. Source: skills/${skillName}/SKILL.md. Regenerate with \`grimoire sync\`. -->`;
 
-function parseArgs(argv) {
-  const args = { dryRun: false, check: false, harness: null, root: '.' };
-  const positional = [];
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === '--dry-run') args.dryRun = true;
-    else if (arg === '--check') args.check = true;
-    else if (arg === '--harness') args.harness = argv[++i];
-    else positional.push(arg);
-  }
-  if (positional[0]) args.root = positional[0];
-  return args;
-}
+const ARG_SPEC = {
+  booleans: { '--dry-run': 'dryRun', '--check': 'check' },
+  values: { '--harness': 'harness' },
+  defaults: { dryRun: false, check: false, harness: null },
+};
 
-/** Split a markdown file into its frontmatter block and the rest. */
-function splitFrontmatter(source) {
+/**
+ * Parse a SKILL.md into the frontmatter values sync cares about plus its body text.
+ *
+ * Uses the shared parser rather than a local one on purpose. `frontmatter.js` is the single
+ * implementation the validators run, so parsing here with anything else means `grimoire lint` and
+ * `grimoire sync` can disagree about what a file says — and the generated artifact, not the source
+ * the validator read, is what a harness actually loads.
+ *
+ * @returns {{data: Record<string, string|string[]>, body: string} | {error: string}}
+ */
+function readSkill(source) {
+  const parsed = parseFrontmatter(source);
+  if (!parsed.found) {
+    return { error: parsed.errors[0]?.message ?? 'no frontmatter — cannot sync.' };
+  }
+  if (parsed.errors.length > 0) {
+    return { error: `line ${parsed.errors[0].line}: ${parsed.errors[0].message}` };
+  }
   const lines = source.split(/\r?\n/);
-  if (lines[0]?.trim() !== '---') return { frontmatter: null, body: source };
-  const close = lines.findIndex((line, i) => i > 0 && line.trim() === '---');
-  if (close === -1) return { frontmatter: null, body: source };
-  return {
-    frontmatter: lines.slice(1, close),
-    body: lines.slice(close + 1).join('\n'),
-  };
+  return { data: parsed.data, body: lines.slice(parsed.bodyStartLine - 1).join('\n') };
 }
 
 /**
  * Emit the portable intersection of frontmatter every target understands, with the description
  * quoted and escaped. Harness-specific keys are dropped rather than passed through as unknowns.
  */
-function renderFrontmatter(frontmatterLines, skillName) {
+function renderFrontmatter(data, skillName) {
   const keep = ['name', 'description', 'model'];
-  const values = {};
-  let currentKey = null;
-
-  for (const line of frontmatterLines) {
-    const match = line.match(/^([A-Za-z_][A-Za-z0-9_-]*):[ \t]*(.*)$/);
-    if (match) {
-      currentKey = match[1];
-      values[currentKey] = match[2].trim();
-    } else if (currentKey && line.trim() !== '') {
-      values[currentKey] = `${values[currentKey]} ${line.trim()}`.trim();
-    }
-  }
-
   const out = ['---'];
   for (const key of keep) {
-    if (values[key] === undefined) continue;
-    const raw = values[key].replace(/^["']|["']$/g, '');
+    const value = data[key];
+    if (value === undefined) continue;
+    const raw = String(value);
     out.push(key === 'description' ? `${key}: "${raw.replace(/"/g, '\\"')}"` : `${key}: ${raw}`);
   }
   out.push('---');
@@ -83,21 +71,15 @@ function renderFrontmatter(frontmatterLines, skillName) {
   return out.join('\n');
 }
 
-function collectFiles(dir, base = dir) {
-  const out = [];
-  for (const entry of fs
-    .readdirSync(dir, { withFileTypes: true })
-    .sort((a, b) => a.name.localeCompare(b.name))) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...collectFiles(full, base));
-    else out.push(path.relative(base, full));
-  }
-  return out;
-}
-
 function main() {
-  const args = parseArgs(process.argv.slice(2));
-  const root = path.resolve(args.root);
+  const parsedArgs = parseArgs(process.argv.slice(2), ARG_SPEC);
+  const problem = argsError(parsedArgs);
+  if (problem) {
+    process.stderr.write(`${problem}\n`);
+    process.exit(1);
+  }
+  const args = parsedArgs.flags;
+  const root = path.resolve(parsedArgs.positional[0] ?? '.');
 
   const configPath = path.join(root, 'grimoire.config.json');
   if (!fs.existsSync(configPath)) {
@@ -108,10 +90,8 @@ function main() {
 
   const harnesses = (args.harness ? [args.harness] : config.harnesses).slice().sort();
   for (const harness of harnesses) {
-    if (!HARNESS_TARGETS[harness]) {
-      process.stderr.write(
-        `Unknown harness "${harness}". Known: ${Object.keys(HARNESS_TARGETS).sort().join(', ')}\n`
-      );
+    if (!isKnownHarness(harness)) {
+      process.stderr.write(`Unknown harness "${harness}". Known: ${harnessNames().join(', ')}\n`);
       process.exit(1);
     }
   }
@@ -127,7 +107,7 @@ function main() {
   const drift = [];
 
   for (const harness of harnesses) {
-    const target = HARNESS_TARGETS[harness];
+    const target = HARNESSES[harness];
 
     for (const skillName of skillNames) {
       const sourceDir = path.join(skillsDir, skillName);
@@ -140,23 +120,27 @@ function main() {
 
         let contents = source;
         if (relative === 'SKILL.md') {
-          const { frontmatter, body } = splitFrontmatter(source);
-          if (frontmatter === null) {
-            process.stderr.write(`${sourcePath}: no frontmatter — cannot sync.\n`);
+          const skill = readSkill(source);
+          if (skill.error) {
+            process.stderr.write(`${sourcePath}: ${skill.error}\n`);
             process.exit(1);
           }
-          contents = `${renderFrontmatter(frontmatter, skillName)}\n${body}`;
+          contents = `${renderFrontmatter(skill.data, skillName)}\n${skill.body}`;
         }
 
         planned.push({ destPath, contents });
       }
 
       if (target.prompts) {
-        const skillSource = fs.readFileSync(path.join(sourceDir, 'SKILL.md'), 'utf8');
-        const { frontmatter, body } = splitFrontmatter(skillSource);
+        const skillPath = path.join(sourceDir, 'SKILL.md');
+        const skill = readSkill(fs.readFileSync(skillPath, 'utf8'));
+        if (skill.error) {
+          process.stderr.write(`${skillPath}: ${skill.error}\n`);
+          process.exit(1);
+        }
         planned.push({
           destPath: path.join(root, '.pi', 'prompts', `${skillName}.md`),
-          contents: `${renderFrontmatter(frontmatter, skillName)}\n${body}`,
+          contents: `${renderFrontmatter(skill.data, skillName)}\n${skill.body}`,
         });
       }
     }
