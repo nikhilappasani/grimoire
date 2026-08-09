@@ -1,0 +1,15 @@
+node_modules/
+*.log
+.DS_Store
+
+# Local reference material, not part of the distributed package
+backup/
+
+# Generated harness artifacts — regenerate with `grimoire sync`
+.claude/
+.codex/
+.copilot/
+.pi/
+
+# Local sandbox output from `grimoire install --dry-run` experiments
+.grimoire-sandbox/

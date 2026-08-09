@@ -1,0 +1,54 @@
+{
+  "name": "grimoire",
+  "version": "0.1.0",
+  "description": "Agent skills that turn tribal knowledge into governed, regenerable capability. LoreWeaver interviews a subject-matter expert and emits a Capability Specification plus an OKF knowledge bundle.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nikhilappasani/grimoire.git"
+  },
+  "homepage": "https://github.com/nikhilappasani/grimoire#readme",
+  "bugs": {
+    "url": "https://github.com/nikhilappasani/grimoire/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "grimoire": "./bin/grimoire.js"
+  },
+  "files": [
+    "LICENSE",
+    "bin/",
+    "skills/",
+    "scripts/",
+    "tools/",
+    "specs/",
+    "knowledge/",
+    "docs/",
+    "grimoire.config.json",
+    "CONVENTIONS.md",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "sync": "node scripts/sync-skills.js",
+    "install-local": "node scripts/install.js",
+    "validate": "node tools/validate-plugin.js .",
+    "lint": "node tools/lint-skills.js skills",
+    "check-knowledge": "node tools/check-knowledge-bundle.js .",
+    "test": "node --test 'tools/__tests__/*.test.js'",
+    "preflight": "npm run test && npm run validate && npm run lint && npm run check-knowledge",
+    "prepublishOnly": "npm run preflight"
+  },
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "copilot",
+    "codex",
+    "knowledge-capture",
+    "okf",
+    "capability-specification"
+  ]
+}
