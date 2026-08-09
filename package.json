@@ -50,5 +50,8 @@
     "knowledge-capture",
     "okf",
     "capability-specification"
-  ]
+  ],
+  "dependencies": {
+    "@nikhilappasani/grimoire": "^0.4.0"
+  }
 }

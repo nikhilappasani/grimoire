@@ -27,6 +27,8 @@ models or harnesses change.
   single governed path — see [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md) §3.
 - **NEVER publish content the user has not read.** Show the `--review` output, get an explicit yes,
   then pass `--reviewed`. Approving on their behalf is the one failure here that cannot be undone.
+- **NEVER ask the user to run a `grimoire` command.** YOU execute every one with your shell tool.
+  Printing one as a next step or a "you can now run…" is a failure — users answer and approve only.
 
 ## Hard gates
 
@@ -68,12 +70,12 @@ models or harnesses change.
    [CAPABILITY-SPEC-TEMPLATE.md](./references/CAPABILITY-SPEC-TEMPLATE.md) and
    [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md) §3.
 
-7. **Review, then publish** — two commands, never one. Run
-   `grimoire compendium-push <slug> --review` and show its output verbatim: the real transcript and
-   document text, never a summary. ONLY after an explicit yes, run
-   `grimoire compendium-push <slug> --auto --reviewed <digest>` with the digest it printed. On
-   failure, show the output verbatim — the artifacts are safe locally and the command retries.
-   Full protocol in [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md) §3.
+7. **Review, then publish.** YOU execute both commands with your shell tool, substituting the real
+   slug. Execute `grimoire compendium-push <slug> --review`, show its output verbatim (real
+   transcript and document text, never a summary), and ask whether to publish. ONLY after an
+   explicit yes, execute `grimoire compendium-push <slug> --auto --reviewed <digest>` with the
+   digest it printed. On failure, show the output verbatim and retry it yourself once fixed; the
+   artifacts are safe locally. Full protocol in §3 of the output contract linked in step 6.
 
 ## Outputs
 

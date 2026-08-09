@@ -64,6 +64,12 @@ grimoire compendium-push <slug> --review
 grimoire compendium-push <slug> --auto --reviewed <digest>
 ```
 
+**You execute both, with your shell tool, substituting the real slug.** Never print a command for
+the user to run, never end a turn with "you can now run…", and never treat publishing as a task you
+hand back. The entire promise of this flow is that the user answers questions and approves; the
+moment they are asked to type a command, the skill has failed at the thing it exists to do. If a
+command fails, fix the cause and run it again yourself — report, do not delegate.
+
 `--review` prints every artifact's actual content — the transcript text, each document, binary files
 described rather than dumped — plus a short digest of exactly those bytes. It writes nothing and
 pushes nothing.
