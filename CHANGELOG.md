@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.4.0
+
+### Added
+
+- **Content review before publishing.** `grimoire compendium-push <slug> --review` prints the actual
+  text of every artifact — the full transcript, each supplied document, binary files described
+  rather than dumped — plus a short digest of exactly those bytes. It writes nothing and pushes
+  nothing. Rationale: 0.3.0 confirmed a *file list*, and under `--auto` confirmed nothing at all, so
+  a capture could reach a remote without anyone having read it. Publishing is irreversible in the
+  way that matters: content that reached a remote has been seen, cached, and possibly indexed even
+  if the branch is deleted minutes later.
+- **`contentDigest()` in `compendium-git.js`** — a 12-character fingerprint over the sorted
+  (path, length, bytes) of the capture. Sorted so it does not depend on directory-walk order, which
+  is locale-sensitive; length-delimited so a file boundary cannot be moved without detection; keyed
+  on paths as well as content so a rename changes it.
+
+### Changed
+
+- **`--auto` now requires `--reviewed <digest>`.** It never meant "approved" — it meant "there is no
+  terminal here" — but nothing enforced the difference. The script recomputes the digest from disk
+  before pushing and refuses if it moved, so an approval is bound to the exact bytes a human read
+  rather than to a filename or a promise. A missing or stale digest fails at step 5 with nothing
+  pushed. **This is a breaking change to the publish flow**; `--auto` alone is now an error.
+- **The interactive path shows content too**, not just filenames: the first 40 lines of each text
+  artifact, with the truncation stated and `--review` offered for the rest.
+- **Step 5 renamed `confirm` → `confirm content`**, and artifacts are now read once as bytes and
+  shared by the secret scan, the digest, and the review display — so all three are guaranteed to
+  describe the same content rather than three separate reads of a file that could change between
+  them.
+- **`SKILL.md` gained a wall: never publish content the user has not read.** Step 7 is now two
+  commands with an explicit approval between them. The close-protocol approval covers the
+  specification; it was never approval to publish the raw transcript and the user's own documents.
+
 ## 0.3.0
 
 ### Added

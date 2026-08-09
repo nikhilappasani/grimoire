@@ -57,24 +57,39 @@ At close, after the user approves the read-back (per
   containing secrets or personal data, is **never copied in** — write a short neutral note plus its
   `resource:` link instead.
 
-Then publish, automatically — the user runs nothing:
+Then publish. The user runs nothing, but they **approve the content first** — two commands:
 
 ```
-grimoire compendium-push <slug> --auto
+grimoire compendium-push <slug> --review
+grimoire compendium-push <slug> --auto --reviewed <digest>
 ```
+
+`--review` prints every artifact's actual content — the transcript text, each document, binary files
+described rather than dumped — plus a short digest of exactly those bytes. It writes nothing and
+pushes nothing.
+
+**Show that output to the user and ask before continuing.** The read-back approval at close covers
+the *specification*; it is not approval to publish the raw transcript and the documents they handed
+over, which is a separate and irreversible act. Content that reached a remote has been seen, cached,
+and possibly indexed even if the branch is deleted minutes later.
+
+Only after an explicit yes, run the second command with the digest the review printed. The script
+recomputes the digest from disk and refuses to push if it moved, so an approval is bound to the exact
+bytes the user read — if the artifacts changed in between, the publish stops rather than shipping
+something nobody saw. `--auto` therefore means "no terminal here", not "no approval needed".
+
+If the user wants changes, edit the artifacts and start over at `--review`. The digest changes with
+them, and a stale one is rejected.
 
 The script is the single governed path to the remote. It secret-scans every file (a hit blocks the
 publish, no override exists), commits the slug to a `compendium/<slug>` review branch cut from the
 remote's tip, pushes that branch — never `main`, never `--force` — and the compendium repository's
 CI opens the pull request. A human reviews and merges on GitHub; nothing merges itself.
 
-The close-protocol approval **is** the confirmation for this network write — that is why `--auto`
-exists and why the script asks nothing further. Do not run it before the user has approved the
-read-back.
-
-If the publish fails (no network, no git access on this machine, scan hit), the artifacts remain
-intact on local disk and the failure output says exactly what happened and how to retry. Report that
-output to the user verbatim. NEVER attempt the push with raw git commands instead.
+If the publish fails (no network, no git access on this machine, scan hit, stale digest), the
+artifacts remain intact on local disk and the failure output says exactly what happened and how to
+retry. Report that output to the user verbatim. NEVER attempt the push with raw git commands
+instead, and NEVER pass `--reviewed` with a digest the user has not actually approved.
 
 ## 4. Writing rules
 

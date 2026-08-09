@@ -6,6 +6,47 @@
  * only place the actual git commands run.
  */
 
+import { createHash } from 'node:crypto';
+
+/**
+ * A short, stable fingerprint of exactly what would be published.
+ *
+ * This is what turns "the user approved this" from a claim into a check. The review command prints
+ * a digest; the push refuses to run non-interactively unless it is handed the same digest back and
+ * recomputes it to the same value. If anything about the capture changed in between — a byte in the
+ * transcript, a renamed document, a file added or removed — the digest moves and the push stops.
+ *
+ * Properties that matter:
+ *  - **Order-independent.** Entries are sorted by path first, so the digest does not depend on
+ *    directory-walk order (which is locale-sensitive) — only on content.
+ *  - **Covers paths, not just bytes.** Renaming a document changes what is published, so it must
+ *    change the digest.
+ *  - **Length-delimited.** Without the explicit length, {"ab", "c"} and {"a", "bc"} would hash
+ *    identically and a file boundary could be moved without detection.
+ *
+ * @param {{path: string, content: Buffer|string}[]} files
+ * @returns {string} 12 hex characters — short enough to read aloud, far past collision risk here.
+ */
+export function contentDigest(files) {
+  const hash = createHash('sha256');
+  const sorted = [...files].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  for (const { path, content } of sorted) {
+    const bytes = Buffer.isBuffer(content) ? content : Buffer.from(String(content), 'utf8');
+    hash.update(`${path}\0${bytes.length}\0`, 'utf8');
+    hash.update(bytes);
+  }
+  return hash.digest('hex').slice(0, 12);
+}
+
+/**
+ * Whether a file should be shown as text in a review, using git's heuristic: a NUL byte in the
+ * content means binary. A review that dumps a PDF into the terminal is not a review.
+ */
+export function isProbablyBinary(content) {
+  const bytes = Buffer.isBuffer(content) ? content : Buffer.from(String(content), 'utf8');
+  return bytes.includes(0);
+}
+
 /**
  * Secret patterns scanned before anything is committed. A hit BLOCKS the publish outright — there is
  * no override flag, mirroring the confidential-is-link-only posture. This local scan is the first

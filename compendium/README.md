@@ -24,8 +24,15 @@ either — the same rule that governs `knowledge/` concepts applies: a short neu
 ## Writing, and publishing
 
 LoreWeaver writes `transcript.md` and `documents/` here at the close of an interview — see
-`skills/loreweaver/references/OUTPUT-CONTRACT.md` §3 — and then publishes them by running
-`grimoire compendium-push <slug> --auto`.
+`skills/loreweaver/references/OUTPUT-CONTRACT.md` §3 — and then publishes them in two steps:
+
+```bash
+grimoire compendium-push <slug> --review              # prints the content and a digest
+grimoire compendium-push <slug> --auto --reviewed <digest>
+```
+
+You read the content and approve it; the digest binds that approval to the exact bytes you saw, and
+the push is refused if they change. Nothing reaches a remote unreviewed.
 
 That script is the **only** path from Grimoire to a remote. LoreWeaver never runs raw git; the wall
 in `skills/loreweaver/SKILL.md` says so explicitly. The script secret-scans every file (a hit blocks

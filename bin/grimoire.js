@@ -36,6 +36,7 @@ const VALUE_FLAGS = {
   '--branch-prefix': 'branchPrefix',
   '-m': 'message',
   '--message': 'message',
+  '--reviewed': 'reviewed',
 };
 
 function hasPositional(args) {
@@ -70,7 +71,9 @@ Commands:
   compendium-push   Publish a capability's transcript + documents as a review branch;
                     the compendium repo's CI opens the PR, a human merges
                       <slug>       which capability to publish (required)
-                      --auto       non-interactive; only after interview-close approval
+                      --review     print the full content and a digest; push nothing
+                      --auto       non-interactive; requires --reviewed <digest>
+                      --reviewed   the digest the user approved; rechecked before pushing
                       --dry-run    print the plan, push nothing
                       --from       staging root holding <slug>/ if outside the clone
   validate          Structural gate: manifests, skill frontmatter, naming, version lockstep

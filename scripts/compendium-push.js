@@ -8,15 +8,26 @@
  *
  * Hard rules, enforced here in code:
  *   - a secret-scan hit blocks the publish outright; there is no override flag
+ *   - nothing is pushed unless a human has seen the content: `--auto` requires `--reviewed <digest>`
+ *     matching a digest recomputed from what is actually on disk
  *   - never pushes the base branch; only `compendium/<slug>` review branches
  *   - never `--force`; an existing branch is never overwritten with different content
  *   - never merges, closes, or deletes anything remote
  *   - a mid-run failure reports exactly which step failed and what state the clone is in
  *
+ * Two-phase by design. Publishing is irreversible in the way that matters — content on a remote has
+ * been seen, cached, and possibly indexed even if the branch is deleted an hour later — so the
+ * content is shown before it goes anywhere, and the approval is bound to the exact bytes reviewed:
+ *
+ *   grimoire compendium-push <slug> --review                    # prints content + a digest
+ *   grimoire compendium-push <slug> --auto --reviewed <digest>  # refuses if the content moved
+ *
+ * Run interactively without `--auto` and the two phases collapse into one prompt.
+ *
  * Usage:
  *   grimoire compendium-push <slug> [--from <staging-root>] [--root <clone>] [--base main]
  *                            [--remote origin] [--branch-prefix compendium/] [-m <message>]
- *                            [--auto] [--dry-run]
+ *                            [--review] [--auto --reviewed <digest>] [--dry-run]
  */
 
 import fs from 'node:fs';
@@ -34,13 +45,18 @@ import {
   resolveBranchName,
   isValidSlug,
   planRootResolution,
+  contentDigest,
+  isProbablyBinary,
 } from '../tools/lib/compendium-git.js';
 
 const MANAGED_DIR = path.join(os.homedir(), '.grimoire', 'compendium');
 const COMMIT_IDENTITY = ['-c', 'user.name=LoreWeaver (Grimoire)', '-c', 'user.email=loreweaver@grimoire.local'];
 
+/** Lines of a text artifact shown before the interactive prompt. `--review` prints all of it. */
+const PREVIEW_LINES = 40;
+
 const ARG_SPEC = {
-  booleans: { '--auto': 'auto', '--dry-run': 'dryRun' },
+  booleans: { '--auto': 'auto', '--dry-run': 'dryRun', '--review': 'review' },
   values: {
     '--root': 'root',
     '--from': 'from',
@@ -49,6 +65,7 @@ const ARG_SPEC = {
     '--branch-prefix': 'branchPrefix',
     '-m': 'message',
     '--message': 'message',
+    '--reviewed': 'reviewed',
   },
   defaults: {
     root: null,
@@ -57,8 +74,10 @@ const ARG_SPEC = {
     remote: 'origin',
     branchPrefix: 'compendium/',
     message: null,
+    reviewed: null,
     auto: false,
     dryRun: false,
+    review: false,
   },
 };
 
@@ -89,6 +108,41 @@ function git(cloneDir, gitArgs, { allowFail = false, identity = false } = {}) {
   return result;
 }
 
+function describeSize(bytes) {
+  const lines = isProbablyBinary(bytes) ? null : bytes.toString('utf8').split(/\r?\n/).length;
+  const size = bytes.length < 1024 ? `${bytes.length} B` : `${(bytes.length / 1024).toFixed(1)} KB`;
+  return lines === null ? `${size}, binary` : `${size}, ${lines} line(s)`;
+}
+
+/**
+ * Print the artifacts' actual content for a human to read before approving.
+ *
+ * Binary files are described, never dumped — a screenful of PDF bytes is not something anyone can
+ * review, and it would bury the text that matters. Truncation in the interactive preview is stated
+ * loudly rather than silently, and points at the command that shows everything.
+ */
+function writeContent(artifacts, { full }) {
+  for (const { path: relPath, bytes } of artifacts) {
+    process.stdout.write(`\n${'─'.repeat(76)}\n${relPath}  (${describeSize(bytes)})\n${'─'.repeat(76)}\n`);
+
+    if (isProbablyBinary(bytes)) {
+      process.stdout.write('[binary file — not shown. Review it from the local path above.]\n');
+      continue;
+    }
+
+    const lines = bytes.toString('utf8').split(/\r?\n/);
+    const shown = full ? lines : lines.slice(0, PREVIEW_LINES);
+    process.stdout.write(`${shown.join('\n')}\n`);
+    if (shown.length < lines.length) {
+      process.stdout.write(
+        `\n[… ${lines.length - shown.length} more line(s) not shown. ` +
+          'Run with --review to read the whole file.]\n'
+      );
+    }
+  }
+  process.stdout.write(`\n${'─'.repeat(76)}\n`);
+}
+
 async function confirmInteractively(promptText) {
   const { createInterface } = await import('node:readline/promises');
   const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -105,7 +159,7 @@ async function main() {
     { name: '2. prepare clone', state: 'not started' },
     { name: '3. import artifacts', state: 'not started' },
     { name: '4. secret scan', state: 'not started' },
-    { name: '5. confirm', state: 'not started' },
+    { name: '5. confirm content', state: 'not started' },
     { name: '6. branch + commit', state: 'not started' },
     { name: '7. push', state: 'not started' },
     { name: '8. report', state: 'not started' },
@@ -199,16 +253,19 @@ async function main() {
       );
     }
 
-    const files = collectFiles(effectiveSlugDir).map((relative) => path.join(args.slug, relative));
+    // Read every artifact once, as bytes. Everything downstream — the scan, the digest, the review
+    // display — works from this snapshot, so all three are guaranteed to describe the same content.
+    const artifacts = collectFiles(effectiveSlugDir).map((relative) => ({
+      path: path.join(args.slug, relative),
+      bytes: fs.readFileSync(path.join(effectiveSlugDir, relative)),
+    }));
+    const files = artifacts.map((a) => a.path);
     steps[step].state = `ok — ${files.length} file(s)`;
 
     // ---- 4. secret scan ----------------------------------------------------------------------
     step = 3;
     const findings = scanForSecrets(
-      collectFiles(effectiveSlugDir).map((relative) => ({
-        path: path.join(args.slug, relative),
-        content: fs.readFileSync(path.join(effectiveSlugDir, relative), 'utf8'),
-      }))
+      artifacts.map(({ path: p, bytes }) => ({ path: p, content: bytes.toString('utf8') }))
     );
     if (findings.length > 0) {
       const lines = findings.map((f) => `    ${f.path}:${f.line} — ${f.kind}`);
@@ -219,33 +276,74 @@ async function main() {
     }
     steps[step].state = 'ok — no matches';
 
-    // ---- 5. confirm --------------------------------------------------------------------------
+    // ---- 5. confirm content -------------------------------------------------------------------
     step = 4;
+    const digest = contentDigest(artifacts.map(({ path: p, bytes }) => ({ path: p, content: bytes })));
     const repoLabel = parsedRemote
       ? `${parsedRemote.host}/${parsedRemote.owner}/${parsedRemote.repo}`
       : remoteUrl;
+    const mode = args.review ? ' (review)' : args.dryRun ? ' (dry run)' : '';
     process.stdout.write(
-      `\ngrimoire compendium-push${args.dryRun ? ' (dry run)' : ''}\n` +
+      `\ngrimoire compendium-push${mode}\n` +
         `  slug:    ${args.slug}\n` +
         `  repo:    ${repoLabel} (branch off ${args.base}; never pushed to ${args.base} directly)\n` +
-        `  files:\n${files.map((f) => `    ${f}`).join('\n')}\n\n`
+        `  digest:  ${digest}\n` +
+        `  files:\n${artifacts.map((a) => `    ${a.path}  (${describeSize(a.bytes)})`).join('\n')}\n`
     );
+
+    // Show the content itself. A file list is not a review — the user is approving what the text
+    // says, not that a path exists.
+    if (args.review || (!args.auto && !args.dryRun)) {
+      writeContent(artifacts, { full: args.review });
+    }
+
+    if (args.review) {
+      for (let i = step; i < steps.length; i++) steps[i].state = 'skipped — review only';
+      steps[step].state = `ok — ${files.length} file(s) shown, digest ${digest}`;
+      finish(steps, 'REVIEW — nothing written, nothing pushed');
+      process.stdout.write(
+        `\nIf this is what should be published, approve it with:\n` +
+          `  grimoire compendium-push ${args.slug} --auto --reviewed ${digest}\n` +
+          `The digest is checked again at push time, so any edit after this point stops the publish.\n`
+      );
+      return;
+    }
+
     if (args.dryRun) {
-      steps[step].state = 'skipped — dry run';
-      steps[5].state = 'skipped — dry run';
-      steps[6].state = 'skipped — dry run';
-      steps[7].state = 'skipped — dry run';
+      for (let i = step; i < steps.length; i++) steps[i].state = 'skipped — dry run';
       finish(steps, 'DRY RUN — nothing written, nothing pushed');
       return;
     }
+
     if (args.auto) {
-      steps[step].state = 'ok — auto (approval given at interview close)';
+      // `--auto` is not an approval, it is the absence of a terminal. The approval is the digest,
+      // which can only have come from a review someone actually read.
+      if (!args.reviewed) {
+        throw new PublishError(
+          'Refusing to publish unreviewed content.\n' +
+            `Run \`grimoire compendium-push ${args.slug} --review\`, show its output to the user, and\n` +
+            'once they approve, pass the digest it printed:\n' +
+            `  grimoire compendium-push ${args.slug} --auto --reviewed <digest>`
+        );
+      }
+      if (args.reviewed !== digest) {
+        throw new PublishError(
+          `The capture changed since it was reviewed — publish blocked.\n` +
+            `  approved: ${args.reviewed}\n` +
+            `  on disk:  ${digest}\n` +
+            'Re-run --review, show the user what it says now, and approve the new digest.'
+        );
+      }
+      steps[step].state = `ok — content digest ${digest} approved`;
     } else if (process.stdin.isTTY) {
-      const confirmed = await confirmInteractively('Push this for review? [y/N] ');
+      const confirmed = await confirmInteractively(`\nPublish this content for review? [y/N] `);
       if (!confirmed) throw new PublishError('Aborted by user.');
-      steps[step].state = 'ok — confirmed interactively';
+      steps[step].state = `ok — confirmed interactively (digest ${digest})`;
     } else {
-      throw new PublishError('No TTY for confirmation. Re-run in a terminal, or pass --auto after close approval.');
+      throw new PublishError(
+        'No TTY for confirmation, and no approved digest.\n' +
+          `Re-run in a terminal, or run --review first and pass --auto --reviewed <digest>.`
+      );
     }
 
     // ---- 6. branch + commit ------------------------------------------------------------------

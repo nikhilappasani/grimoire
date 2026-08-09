@@ -489,14 +489,42 @@ it and that wins.
 
 ## Publishing a capture
 
-At the close of an interview — after you approve the read-back — LoreWeaver runs:
+At the close of an interview, LoreWeaver shows you exactly what it wants to publish and waits for
+your yes. You don't type the commands — but nothing leaves your machine until you've read the
+content and approved it.
 
 ```bash
-grimoire compendium-push <slug> --auto
+grimoire compendium-push <slug> --review              # shows the content, pushes nothing
+grimoire compendium-push <slug> --auto --reviewed <digest>
 ```
 
-You don't type it. Your approval at close *is* the confirmation for the network write, which is what
-`--auto` means. The result is a pull request on your Compendium repo waiting for review.
+`--review` prints the actual text of every artifact — the full transcript, each document, binary
+files described rather than dumped — plus a short **digest** of exactly those bytes:
+
+```text
+grimoire compendium-push (review)
+  slug:    nightly-loader
+  repo:    github.com/you/compendium (branch off main; never pushed to main directly)
+  digest:  8250cfc715cc
+  files:
+    nightly-loader/documents/runbook.md  (59 B, 4 line(s))
+    nightly-loader/transcript.md         (206 B, 8 line(s))
+```
+
+Approve it and the digest goes back in as `--reviewed`. The script recomputes it from disk before
+pushing, so **your approval is bound to the exact bytes you read**. If anything changed in between —
+a word edited, a document renamed, a file added — the digest moves and the publish stops:
+
+```text
+The capture changed since it was reviewed — publish blocked.
+  approved: 8250cfc715cc
+  on disk:  042b1d769c94
+```
+
+That's why `--auto` means "there's no terminal here", not "no approval needed". Running it without
+an approved digest is refused outright.
+
+Not happy with what you see? Ask for changes and review again. Nothing has been pushed.
 
 ### What it actually does
 
@@ -505,9 +533,13 @@ You don't type it. Your approval at close *is* the confirmation for the network 
 | 1. Resolve | Finds the Compendium clone, or clones `compendiumRepository` to `~/.grimoire/compendium` |
 | 2. Import | Copies `<slug>/transcript.md` + `<slug>/documents/` into the clone if they were staged elsewhere |
 | 3. Secret scan | Scans every file. **A hit blocks the publish. There is no override flag.** |
-| 4. Branch | Cuts `compendium/<slug>` from the remote's tip — never commits to `main` |
-| 5. Push | Plain `git push -u origin <branch>`. Never `--force` |
-| 6. Report | Prints the branch, the PR list URL, and a manual compare URL as a fallback |
+| 4. Confirm content | Shows the content; requires your approved digest, rechecked against disk |
+| 5. Branch | Cuts `compendium/<slug>` from the remote's tip — never commits to `main` |
+| 6. Push | Plain `git push -u origin <branch>`. Never `--force` |
+| 7. Report | Prints the branch, the PR list URL, and a manual compare URL as a fallback |
+
+Running it yourself in a terminal collapses the two phases into one: it prints the content (first 40
+lines of each file, with `--review` for the rest) and asks `Publish this content for review? [y/N]`.
 
 The Compendium repo's own CI takes it from there: it validates the capture's structure, re-runs a
 secret scan with gitleaks, and opens the pull request. **A human reviews and merges. Nothing in this
@@ -541,8 +573,8 @@ Fix the cause and re-run the same command by hand:
 grimoire compendium-push <slug>
 ```
 
-Run without `--auto`, it asks for confirmation in the terminal. Add `--dry-run` to see the plan —
-which files, which branch, which repo — without writing or pushing anything.
+Add `--dry-run` to see the plan — which files, which branch, which repo — without writing or pushing
+anything.
 
 Publishing the same slug twice never overwrites the first branch. It gets `compendium/<slug>`, then
 `compendium/<slug>-<YYYYMMDD>`, then `-2`, `-3` — the same collision convention specifications use.
@@ -706,6 +738,16 @@ skill, or drop the link.
 The publish needs git push access to the Compendium repo and this machine doesn't have it. Set up an
 SSH key or a git credential helper, then re-run `grimoire compendium-push <slug>`. Your transcript
 and documents are already saved locally — nothing was lost.
+
+**"Refusing to publish unreviewed content"**
+Something tried to publish without an approved digest. Run `grimoire compendium-push <slug>
+--review`, read what it prints, and pass the digest back with `--auto --reviewed <digest>`. This is
+the guard that stops a capture reaching a remote before anyone has read it.
+
+**"The capture changed since it was reviewed — publish blocked"**
+The artifacts on disk are no longer the ones the digest was approved for. Re-run `--review`, read
+the current content, and approve the new digest. Working as intended: an approval covers specific
+bytes, not a filename.
 
 **"Secret scan found N match(es); publish blocked"**
 A file in the capture looks like it contains a credential. This is intentionally not overridable.

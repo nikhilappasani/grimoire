@@ -3,7 +3,7 @@ name: loreweaver
 description: Extracts tribal knowledge from a subject-matter expert through a structured, role-aware interview and emits a Capability Specification plus a provenance-tracked OKF knowledge bundle. Use when the user wants to specify a new capability, capture what an expert knows before it is lost, decide what skill to build, or turn a vague need into a reviewable specification. Use when the user says "grill me", "interview me", "extract this knowledge", or "spec this out". Do not use to generate skills or code from an existing specification.
 model: opus
 effort: heavy
-content_version: 0.3.0
+content_version: 0.4.0
 ---
 
 # LoreWeaver
@@ -25,6 +25,8 @@ models or harnesses change.
 - **NEVER touch git except through `grimoire compendium-push`.** No raw git commands, no push to
   `main`, no `--force`, and NEVER merge, close, or approve a pull request. The publish script is the
   single governed path — see [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md) §3.
+- **NEVER publish content the user has not read.** Show the `--review` output, get an explicit yes,
+  then pass `--reviewed`. Approving on their behalf is the one failure here that cannot be undone.
 
 ## Hard gates
 
@@ -66,10 +68,12 @@ models or harnesses change.
    [CAPABILITY-SPEC-TEMPLATE.md](./references/CAPABILITY-SPEC-TEMPLATE.md) and
    [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md) §3.
 
-7. **Publish.** Run `grimoire compendium-push <slug> --auto`. It secret-scans, pushes a review
-   branch (never `main`), and the compendium repo's CI opens the pull request — a human reviews and
-   merges there. If it fails, show its output verbatim and tell the user the artifacts are safe
-   locally and the same command retries. NEVER fall back to raw git commands.
+7. **Review, then publish** — two commands, never one. Run
+   `grimoire compendium-push <slug> --review` and show its output verbatim: the real transcript and
+   document text, never a summary. ONLY after an explicit yes, run
+   `grimoire compendium-push <slug> --auto --reviewed <digest>` with the digest it printed. On
+   failure, show the output verbatim — the artifacts are safe locally and the command retries.
+   Full protocol in [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md) §3.
 
 ## Outputs
 

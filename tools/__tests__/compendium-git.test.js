@@ -11,6 +11,8 @@ import {
   resolveBranchName,
   isValidSlug,
   planRootResolution,
+  contentDigest,
+  isProbablyBinary,
 } from '../lib/compendium-git.js';
 
 const FIXTURES = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'compendium-push');
@@ -106,4 +108,49 @@ test('root resolution: env root wins when it exists; managed clone is used when 
 
 test('root resolution: nothing configured is a clear error', () => {
   assert.match(planRootResolution({ existsFn: () => false }).error, /No compendium root resolves/);
+});
+
+const CAPTURE = [
+  { path: 'slug/transcript.md', content: '# Transcript\n\nQ: why?\nA: because.\n' },
+  { path: 'slug/documents/notes.md', content: '# Notes\n' },
+];
+
+test('content digest is stable for identical content and independent of input order', () => {
+  // Order-independence matters concretely: the walk that produces this list sorts with
+  // localeCompare, whose result depends on the runtime locale. A digest that moved with the locale
+  // would reject an approval on a colleague's machine for no reason.
+  assert.equal(contentDigest(CAPTURE), contentDigest(CAPTURE));
+  assert.equal(contentDigest([...CAPTURE].reverse()), contentDigest(CAPTURE));
+  assert.match(contentDigest(CAPTURE), /^[0-9a-f]{12}$/);
+});
+
+test('content digest changes when a single byte of content changes', () => {
+  const edited = [{ ...CAPTURE[0], content: '# Transcript\n\nQ: why?\nA: because!\n' }, CAPTURE[1]];
+  assert.notEqual(contentDigest(edited), contentDigest(CAPTURE));
+});
+
+test('content digest changes when a file is renamed, added, or removed', () => {
+  const renamed = [CAPTURE[0], { ...CAPTURE[1], path: 'slug/documents/other.md' }];
+  assert.notEqual(contentDigest(renamed), contentDigest(CAPTURE));
+  assert.notEqual(contentDigest([...CAPTURE, { path: 'slug/extra.md', content: '' }]), contentDigest(CAPTURE));
+  assert.notEqual(contentDigest([CAPTURE[0]]), contentDigest(CAPTURE));
+});
+
+test('content digest cannot be fooled by moving a boundary between files', () => {
+  // Without the length delimiter these two would hash identically, so an approved capture could be
+  // re-cut into different files without the digest noticing.
+  const a = [{ path: 'x', content: 'ab' }, { path: 'y', content: 'c' }];
+  const b = [{ path: 'x', content: 'a' }, { path: 'y', content: 'bc' }];
+  assert.notEqual(contentDigest(a), contentDigest(b));
+});
+
+test('content digest treats a string and its bytes as the same content', () => {
+  const asBuffers = CAPTURE.map((f) => ({ path: f.path, content: Buffer.from(f.content, 'utf8') }));
+  assert.equal(contentDigest(asBuffers), contentDigest(CAPTURE));
+});
+
+test('binary detection keys on a NUL byte, so UTF-8 text stays reviewable', () => {
+  assert.equal(isProbablyBinary(Buffer.from('# Notes — em dash, émoji 🎲\n', 'utf8')), false);
+  assert.equal(isProbablyBinary(Buffer.from([0x25, 0x50, 0x44, 0x46, 0x00, 0x01])), true);
+  assert.equal(isProbablyBinary(''), false);
 });
