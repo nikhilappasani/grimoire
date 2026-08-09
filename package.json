@@ -1,6 +1,6 @@
 {
-  "name": "grimoire",
-  "version": "0.1.0",
+  "name": "@nikhilappasani/grimoire",
+  "version": "0.3.0",
   "description": "Agent skills that turn tribal knowledge into governed, regenerable capability. LoreWeaver interviews a subject-matter expert and emits a Capability Specification plus an OKF knowledge bundle.",
   "type": "module",
   "license": "MIT",
@@ -26,7 +26,7 @@
     "tools/",
     "specs/",
     "knowledge/",
-    "docs/",
+    "compendium/",
     "grimoire.config.json",
     "CONVENTIONS.md",
     "README.md",

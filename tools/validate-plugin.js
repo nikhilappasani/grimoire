@@ -16,6 +16,8 @@ import { Report, parseFlags } from './lib/report.js';
 
 const REQUIRED_SKILL_KEYS = ['name', 'description'];
 const NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+// npm package names may additionally carry a scope (@owner/name); skill directory names never do.
+const PACKAGE_NAME_RE = /^(?:@[a-z0-9-]+\/)?[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function readJson(file, report, label) {
   if (!fs.existsSync(file)) {
@@ -60,7 +62,7 @@ function main() {
   if (pkg) {
     if (!pkg.name) report.error('package.json', 'Missing `name`.');
     if (!pkg.version) report.error('package.json', 'Missing `version`.');
-    if (pkg.name && !NAME_RE.test(pkg.name)) {
+    if (pkg.name && !PACKAGE_NAME_RE.test(pkg.name)) {
       report.error('package.json', `Invalid package name "${pkg.name}" — lowercase kebab-case only.`);
     }
   }
@@ -70,7 +72,7 @@ function main() {
     for (const key of ['contentVersion', 'specVersion', 'roots', 'harnesses']) {
       if (config[key] === undefined) report.error('grimoire.config.json', `Missing \`${key}\`.`);
     }
-    for (const key of ['specs', 'knowledge', 'docs']) {
+    for (const key of ['specs', 'knowledge', 'compendium']) {
       if (!config.roots?.[key]) report.error('grimoire.config.json', `Missing \`roots.${key}\`.`);
     }
     if (!Array.isArray(config.harnesses) || config.harnesses.length === 0) {

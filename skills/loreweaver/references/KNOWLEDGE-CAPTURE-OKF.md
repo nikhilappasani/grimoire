@@ -146,5 +146,6 @@ Pending items stay `OPEN:` stubs until the user provides the content.
   and inside a local vault.
 - The bundle is referenced from a generated `SKILL.md` via progressive disclosure — the skill loads one
   concept just-in-time rather than inlining all knowledge.
-- Source documents the user supplied during the interview are filed under the configured `docs` root,
-  not inside `knowledge/`. The concept links to them; the bundle stays distilled.
+- Source documents the user supplied during the interview are filed under the configured
+  `compendium` root, not inside `knowledge/`. The concept links to them; the bundle stays distilled.
+  See [OUTPUT-CONTRACT.md](./OUTPUT-CONTRACT.md) §3.

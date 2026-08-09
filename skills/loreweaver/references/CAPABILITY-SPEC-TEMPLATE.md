@@ -1,6 +1,6 @@
 # Capability Specification — Template & Emit Format
 
-- `spec_version`: 0.1.0
+- `spec_version`: 0.2.0
 
 The Capability Specification is **the asset**. It captures *what capability should exist and the
 qualities its realization must satisfy*, and defers *how* to whatever generates the implementation.
@@ -27,8 +27,8 @@ Fill every section. Use `ASSUMPTION:` and `OPEN:` where unresolved — never a s
 
 ```markdown
 ---
-spec_version: 0.1.0
-content_version: 0.1.0
+spec_version: 0.2.0
+content_version: 0.3.0
 slug: <slug>
 emitted: <ISO-8601 date>
 ---
@@ -119,7 +119,7 @@ regenerated. This never enters the `knowledge/` bundle.
 - Alternatives considered and rejected: <option → reason rejected>
 - Assumptions resolved during the interview: <ASSUMPTION → resolution>
 - Reuse-vs-create outcome: <extended existing capability X | net-new, because ...>
-- Raw transcript: <link/path if retained, or "not retained">
+- Raw transcript: `compendium/<slug>/transcript.md` (see [OUTPUT-CONTRACT.md](./OUTPUT-CONTRACT.md) §3), or "not retained"
 ```
 
 ## 3. The nine evaluation dimensions
@@ -157,7 +157,7 @@ on the document itself:
   `resource:`, never copied — see [KNOWLEDGE-CAPTURE-OKF.md](./KNOWLEDGE-CAPTURE-OKF.md) §7.
 - Outcomes are **observable**, not aspirational. "Improves data quality" fails; "flags unclassified
   columns before publish" passes.
-- Constraints include the non-negotiables in [OUTPUT-CONTRACT.md](./OUTPUT-CONTRACT.md) §4: no
+- Constraints include the non-negotiables in [OUTPUT-CONTRACT.md](./OUTPUT-CONTRACT.md) §5: no
   secrets, no sensitive-data exposure, no fabricated logic, confirm before irreversible actions.
 - `Bank matched:` is filled in. If the universal fallback was used, it says so explicitly.
 

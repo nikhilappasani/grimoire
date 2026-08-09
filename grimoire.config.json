@@ -1,12 +1,14 @@
 {
-  "contentVersion": "0.1.0",
-  "specVersion": "0.1.0",
+  "contentVersion": "0.3.0",
+  "specVersion": "0.2.0",
 
   "roots": {
     "specs": "./specs",
     "knowledge": "./knowledge",
-    "docs": "./docs/sources"
+    "compendium": "./compendium"
   },
+
+  "compendiumRepository": "https://github.com/nikhilappasani/compendium.git",
 
   "harnesses": [
     "claude-code",

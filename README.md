@@ -23,6 +23,7 @@ It works with Claude Code, Codex, GitHub Copilot / VS Code, and pi.
 - [The knowledge base](#the-knowledge-base)
 - [Obsidian sync](#obsidian-sync)
 - [Configuration](#configuration)
+- [Publishing a capture](#publishing-a-capture)
 - [Sharing with your team](#sharing-with-your-team)
 - [Working on Grimoire itself](#working-on-grimoire-itself)
 - [What this deliberately does not do](#what-this-deliberately-does-not-do)
@@ -434,13 +435,14 @@ feed it to an agent as the ground truth for building something. Same files, thre
 
 ```json
 {
-  "contentVersion": "0.1.0",
-  "specVersion": "0.1.0",
+  "contentVersion": "0.3.0",
+  "specVersion": "0.2.0",
   "roots": {
     "specs": "./specs",
     "knowledge": "./knowledge",
-    "docs": "./docs/sources"
+    "compendium": "./compendium"
   },
+  "compendiumRepository": "https://github.com/you/compendium.git",
   "harnesses": ["claude-code", "codex", "copilot", "pi"]
 }
 ```
@@ -450,13 +452,13 @@ feed it to an agent as the ground truth for building something. Same files, thre
 | Root | Holds |
 |---|---|
 | `specs` | Capability Specifications |
-| `knowledge` | The knowledge base — point this at your own repo |
-| `docs` | Source documents you handed over during an interview, stored as given |
+| `knowledge` | The knowledge base — distilled facts, point this at your own repo |
+| `compendium` | The raw interview transcript and supplied documents, one folder per capability — bulkier and unprocessed on purpose, kept separate so it never bloats the knowledge base's history |
 
 Each resolves in this order, first hit wins:
 
 1. A path you give during the session ("write it to ~/work/specs")
-2. An environment variable — `GRIMOIRE_SPECS_ROOT`, `GRIMOIRE_KNOWLEDGE_ROOT`, `GRIMOIRE_DOCS_ROOT`
+2. An environment variable — `GRIMOIRE_SPECS_ROOT`, `GRIMOIRE_KNOWLEDGE_ROOT`, `GRIMOIRE_COMPENDIUM_ROOT`
 3. `grimoire.config.json`
 
 ```bash
@@ -466,6 +468,84 @@ export GRIMOIRE_KNOWLEDGE_ROOT=~/code/my-knowledge-base
 **A configured root that doesn't exist is an error, not a silent `mkdir`.** If you typo a path,
 LoreWeaver stops and asks — it won't quietly write your knowledge base somewhere you'll never find
 it.
+
+### `compendiumRepository`
+
+One extra key, used only by publishing. Point it at the git URL of your Compendium repo:
+
+```json
+"compendiumRepository": "https://github.com/you/compendium.git"
+```
+
+When it's set and no `compendium` root resolves from the three rules above, `grimoire
+compendium-push` maintains its own clone at `~/.grimoire/compendium`, cloning it on first use. That
+is the one place Grimoire creates a directory for you, and it's deliberate: it's what lets a machine
+that has never seen your Compendium repo publish a capture without anyone setting anything up. It
+isn't the "silent `mkdir` of a configured root" the rule above forbids — nothing you configured is
+missing.
+
+If you'd rather manage the clone yourself, set `GRIMOIRE_COMPENDIUM_ROOT` (or `roots.compendium`) to
+it and that wins.
+
+## Publishing a capture
+
+At the close of an interview — after you approve the read-back — LoreWeaver runs:
+
+```bash
+grimoire compendium-push <slug> --auto
+```
+
+You don't type it. Your approval at close *is* the confirmation for the network write, which is what
+`--auto` means. The result is a pull request on your Compendium repo waiting for review.
+
+### What it actually does
+
+| Step | What happens |
+|---|---|
+| 1. Resolve | Finds the Compendium clone, or clones `compendiumRepository` to `~/.grimoire/compendium` |
+| 2. Import | Copies `<slug>/transcript.md` + `<slug>/documents/` into the clone if they were staged elsewhere |
+| 3. Secret scan | Scans every file. **A hit blocks the publish. There is no override flag.** |
+| 4. Branch | Cuts `compendium/<slug>` from the remote's tip — never commits to `main` |
+| 5. Push | Plain `git push -u origin <branch>`. Never `--force` |
+| 6. Report | Prints the branch, the PR list URL, and a manual compare URL as a fallback |
+
+The Compendium repo's own CI takes it from there: it validates the capture's structure, re-runs a
+secret scan with gitleaks, and opens the pull request. **A human reviews and merges. Nothing in this
+pipeline ever merges, closes, or approves anything.**
+
+### Why there's no `gh` requirement
+
+Opening a pull request needs a GitHub API token. Asking every expert who sits for an interview to
+install the `gh` CLI and authenticate it is exactly the hassle this avoids — so the PR is opened
+*server-side*, by the Compendium repo's workflow, using the token GitHub Actions already has.
+
+The interviewing machine therefore needs one thing and one thing only: **git push access to the
+Compendium repo.** No `gh`, no token, no Grimoire-specific setup.
+
+That access comes from whatever the machine already has:
+
+| If the machine has | It works via |
+|---|---|
+| An SSH key on the GitHub account | `git@github.com:you/compendium.git` — set `compendiumRepository` to the SSH URL |
+| A git credential helper (macOS Keychain, Windows Credential Manager, `git-credential-libsecret`) | The HTTPS URL, using the stored credential |
+| GitHub Codespaces / Actions / most cloud dev environments | The ambient token those environments inject |
+| None of the above | The publish fails cleanly and tells you — see below |
+
+### When it fails
+
+Nothing is lost. The transcript and documents are already written to local disk before the publish
+is attempted, and the failure output names the exact step that failed and the state of the clone.
+Fix the cause and re-run the same command by hand:
+
+```bash
+grimoire compendium-push <slug>
+```
+
+Run without `--auto`, it asks for confirmation in the terminal. Add `--dry-run` to see the plan —
+which files, which branch, which repo — without writing or pushing anything.
+
+Publishing the same slug twice never overwrites the first branch. It gets `compendium/<slug>`, then
+`compendium/<slug>-<YYYYMMDD>`, then `-2`, `-3` — the same collision convention specifications use.
 
 ## Sharing with your team
 
@@ -487,27 +567,30 @@ Everyone stays on the same version, and improvements flow through git like any o
 For someone who can't reach your git host:
 
 ```bash
-npm pack                 # produces grimoire-0.1.0.tgz
+npm pack                 # produces nikhilappasani-grimoire-0.1.0.tgz
 ```
 
 ```bash
 # They run:
-npm install -g ./grimoire-0.1.0.tgz
+npm install -g ./nikhilappasani-grimoire-0.1.0.tgz
 grimoire sync
 grimoire install --target claude-code --home
 ```
 
 ### Option 3 — publish to a registry
 
-Publish to npm or your company's internal registry:
+The package is scoped (`@nikhilappasani/grimoire`) because the unscoped name `grimoire` is already
+taken by an unrelated package on the public registry. A scoped package defaults to **private** on
+first publish — pass `--access public` once to make it installable by anyone:
 
 ```bash
-npm publish              # public
-npm publish --registry https://registry.internal.example.com
+npm publish --access public              # public, first time only
+npm publish                              # every publish after that
+npm publish --registry https://registry.internal.example.com   # internal registry instead
 ```
 
-Then anyone runs `npm install -g grimoire`. `prepublishOnly` runs the full preflight, so a broken
-build can't be published.
+Then anyone runs `npm install -g @nikhilappasani/grimoire`. `prepublishOnly` runs the full preflight,
+so a broken build can't be published.
 
 ### Option 4 — just copy the folder
 
@@ -539,7 +622,7 @@ grimoire/
 ├── tools/                    ← validators + shared parsers + tests
 ├── scripts/                  ← sync + install
 ├── bin/grimoire.js           ← CLI
-├── specs/  knowledge/  docs/ ← default output roots
+├── specs/ knowledge/ compendium/ ← default output roots
 └── CONVENTIONS.md            ← binding rules for contributors
 ```
 
@@ -583,7 +666,9 @@ Not oversights — deliberate boundaries.
 - **It doesn't validate or evaluate implementations.**
 - **It doesn't fetch content behind a login.** It captures the link and asks you for the content.
   It'll never guess what's behind a URL it can't open.
-- **It doesn't merge pull requests or push to git.** Human review stays the gate.
+- **It doesn't merge, approve, or close pull requests.** It pushes one thing — a `compendium/<slug>`
+  review branch, through a single governed script, never `--force` and never to `main`. Everything
+  after that is human review. That's the gate, and nothing in the pipeline can open it.
 - **It doesn't deduplicate knowledge across sessions.** Curating and merging the knowledge base is a
   separate job, not something the interviewer does mid-conversation.
 
@@ -616,6 +701,26 @@ Someone edited a `SKILL.md` without re-running sync. Run `grimoire sync`.
 **"Link escapes the skill directory"**
 A reference file links outside its skill. Skills must be self-contained. Move the content inside the
 skill, or drop the link.
+
+**"Cannot clone … This machine may not be authenticated to the repository yet"**
+The publish needs git push access to the Compendium repo and this machine doesn't have it. Set up an
+SSH key or a git credential helper, then re-run `grimoire compendium-push <slug>`. Your transcript
+and documents are already saved locally — nothing was lost.
+
+**"Secret scan found N match(es); publish blocked"**
+A file in the capture looks like it contains a credential. This is intentionally not overridable.
+The output names the file, line, and kind of match — never the secret itself. Remove the value or
+replace it with a `resource:` link to where it actually lives, then re-run.
+
+**"The compendium clone has unrelated uncommitted changes"**
+Your Compendium clone has edits outside the slug being published. The publish only ever commits the
+one slug, so it refuses rather than sweeping your other work into the commit. Commit, stash, or
+discard those changes first.
+
+**The PR didn't appear after a successful push**
+The push succeeded; the Compendium repo's CI opens the PR. Check the repo's Actions tab — a failing
+structure or gitleaks check blocks the `open-pr` job on purpose. The publish output also prints a
+compare URL you can use to open the PR by hand.
 
 **The interview feels too long**
 It is a real interview. You can stop and resume, or tell it to focus on specific sections. If a

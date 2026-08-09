@@ -1,6 +1,6 @@
 # Interview Script — the base grill
 
-- `content_version`: 0.1.0
+- `content_version`: 0.3.0
 - Question IDs are stable and never reused. Rewording keeps the ID; replacing the intent retires it
   and issues a new one.
 

@@ -28,11 +28,12 @@ grimoire/
 │   ├── sync-skills.js           # SKILL.md → per-harness artifacts
 │   └── install.js               # local install, sandbox by default
 ├── specs/                       # emitted Capability Specifications
-└── knowledge/                   # emitted OKF knowledge bundle
+├── knowledge/                   # emitted OKF knowledge bundle
+└── compendium/                  # emitted interview transcripts + supplied documents
 ```
 
-`specs/` and `knowledge/` are **output roots**, not source. Their real location is resolved per §6 —
-the paths above are only the defaults.
+`specs/`, `knowledge/`, and `compendium/` are **output roots**, not source. Their real location is
+resolved per §6 — the paths above are only the defaults.
 
 ## 2. Skill naming
 
@@ -90,11 +91,26 @@ Emitted artifacts do not necessarily land in this repo. The **runtime contract i
 gets copied into several harnesses and must not depend on anything outside its own directory. This
 section summarizes it for contributors; it does not restate the rules authoritatively.
 
-Roots are `specs`, `knowledge`, and `docs`, each resolved from an explicit session path, then a
+Roots are `specs`, `knowledge`, and `compendium`, each resolved from an explicit session path, then a
 `GRIMOIRE_*_ROOT` environment variable, then `grimoire.config.json`. A configured root that does not
-exist is a fail-closed error, never a silent `mkdir -p`.
+exist is a fail-closed error, never a silent `mkdir -p`. `compendium` holds the raw interview
+transcript and supplied documents — a separate, bulkier root from `knowledge`'s distilled concepts,
+on purpose (§8's confidential-is-link-only rule applies to both).
 
 **A skill's relative links must never escape its own directory.** `lint-skills.js` enforces this.
+
+### 6a. The one path that writes to a remote
+
+`scripts/compendium-push.js` is the **only** code in this repo permitted to run a network-write git
+operation, and `tools/lib/compendium-git.js` holds its decision logic as pure functions — no
+spawning, no filesystem — so every rule guarding that write is unit-testable without touching git.
+
+If you add a feature that needs to reach a remote, extend that script. Do not add a second one, and
+do not spawn git from a skill: the value of a single governed path is that reviewers have exactly
+one file to audit. Its guarantees — secret scan with no override, never `main`, never `--force`,
+never merge, never overwrite an existing branch — are enforced in code and covered by
+`tools/__tests__/compendium-push.integration.test.js`, which runs the real script against a
+throwaway bare-repo pair. Changing any of them means changing that test, deliberately.
 
 ## 7. Generated artifacts
 

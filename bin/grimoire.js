@@ -14,13 +14,17 @@ const ROOT = path.join(HERE, '..');
 const COMMANDS = {
   sync: 'scripts/sync-skills.js',
   install: 'scripts/install.js',
+  'compendium-push': 'scripts/compendium-push.js',
   validate: 'tools/validate-plugin.js',
   lint: 'tools/lint-skills.js',
   'check-knowledge': 'tools/check-knowledge-bundle.js',
 };
 
 /** Flags that consume the argument after them — needed to tell a flag value from a positional. */
-const VALUE_FLAGS = new Set(['--harness', '--target', '--dest', '--keep']);
+const VALUE_FLAGS = new Set([
+  '--harness', '--target', '--dest', '--keep',
+  '--root', '--from', '--base', '--remote', '--branch-prefix', '-m', '--message',
+]);
 
 /**
  * Installed globally, the working directory is wherever the user happens to be — usually not a
@@ -51,6 +55,9 @@ function hasPositional(args) {
 
 /** Supply the command's default target when the user gave none. */
 function withDefaultPath(command, args) {
+  // compendium-push's positional is a slug, not a path — injecting a default root here would turn
+  // "slug required" into a baffling error about the repo directory. Its script owns its own errors.
+  if (command === 'compendium-push') return args;
   if (hasPositional(args)) return args;
   const base = resolveBase();
   return command === 'lint' ? [...args, path.join(base, 'skills')] : [...args, base];
@@ -71,6 +78,12 @@ Commands:
                       --dest     explicit destination directory
                       --home     install into the harness's user directory
                       --dry-run  print actions, write nothing
+  compendium-push   Publish a capability's transcript + documents as a review branch;
+                    the compendium repo's CI opens the PR, a human merges
+                      <slug>       which capability to publish (required)
+                      --auto       non-interactive; only after interview-close approval
+                      --dry-run    print the plan, push nothing
+                      --from       staging root holding <slug>/ if outside the clone
   validate          Structural gate: manifests, skill frontmatter, naming, version lockstep
   lint              Skill-quality gate: description, body length, links, self-containment
   check-knowledge   OKF gate: type vocabulary, confidential-is-link-only, provenance

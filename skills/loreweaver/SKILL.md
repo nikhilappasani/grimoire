@@ -3,7 +3,7 @@ name: loreweaver
 description: Extracts tribal knowledge from a subject-matter expert through a structured, role-aware interview and emits a Capability Specification plus a provenance-tracked OKF knowledge bundle. Use when the user wants to specify a new capability, capture what an expert knows before it is lost, decide what skill to build, or turn a vague need into a reviewable specification. Use when the user says "grill me", "interview me", "extract this knowledge", or "spec this out". Do not use to generate skills or code from an existing specification.
 model: opus
 effort: heavy
-content_version: 0.1.0
+content_version: 0.3.0
 ---
 
 # LoreWeaver
@@ -22,6 +22,9 @@ models or harnesses change.
 - **NEVER fetch auth-gated content on the user's behalf.** Capture the link, mark it pending, ask the
   user to supply the content.
 - **NEVER invent a business rule, data contract, or acceptance criterion.** Mark it `OPEN:`.
+- **NEVER touch git except through `grimoire compendium-push`.** No raw git commands, no push to
+  `main`, no `--force`, and NEVER merge, close, or approve a pull request. The publish script is the
+  single governed path — see [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md) §3.
 
 ## Hard gates
 
@@ -59,8 +62,14 @@ models or harnesses change.
 5. **Close.** Run the close protocol: MECE gate, read the whole thing back, list every `ASSUMPTION:`
    and `OPEN:` for resolution, then wait for explicit approval.
 
-6. **Emit.** Write the three outputs below per
-   [CAPABILITY-SPEC-TEMPLATE.md](./references/CAPABILITY-SPEC-TEMPLATE.md).
+6. **Emit.** Write the four outputs below per
+   [CAPABILITY-SPEC-TEMPLATE.md](./references/CAPABILITY-SPEC-TEMPLATE.md) and
+   [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md) §3.
+
+7. **Publish.** Run `grimoire compendium-push <slug> --auto`. It secret-scans, pushes a review
+   branch (never `main`), and the compendium repo's CI opens the pull request — a human reviews and
+   merges there. If it fails, show its output verbatim and tell the user the artifacts are safe
+   locally and the same command retries. NEVER fall back to raw git commands.
 
 ## Outputs
 
@@ -68,6 +77,7 @@ models or harnesses change.
 |---|---|---|
 | `<slug>-capability-spec.md` | `specs` root | The specification — the asset |
 | `knowledge/**` concept files | `knowledge` root | What a generated skill reads at runtime |
+| `compendium/<slug>/transcript.md` + `documents/` | `compendium` root | The raw interview and supplied documents — evidence, not runtime knowledge |
 | Design Record (Appendix A) | inside the specification | Interview rationale and provenance |
 
 Roots resolve per [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md): explicit path, then

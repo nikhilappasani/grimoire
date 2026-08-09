@@ -1,0 +1,9 @@
+[
+  { "input": "git@github.com:nikhilappasani/compendium.git", "host": "github.com", "owner": "nikhilappasani", "repo": "compendium" },
+  { "input": "git@github.com:nikhilappasani/compendium", "host": "github.com", "owner": "nikhilappasani", "repo": "compendium" },
+  { "input": "https://github.com/nikhilappasani/compendium.git", "host": "github.com", "owner": "nikhilappasani", "repo": "compendium" },
+  { "input": "https://github.com/nikhilappasani/compendium", "host": "github.com", "owner": "nikhilappasani", "repo": "compendium" },
+  { "input": "https://github.com/nikhilappasani/compendium/", "host": "github.com", "owner": "nikhilappasani", "repo": "compendium" },
+  { "input": "ssh://git@github.com/nikhilappasani/compendium.git", "host": "github.com", "owner": "nikhilappasani", "repo": "compendium" },
+  { "input": "https://ghe.example.com/team/knowledge.git", "host": "ghe.example.com", "owner": "team", "repo": "knowledge" }
+]
