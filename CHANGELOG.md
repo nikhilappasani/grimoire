@@ -33,6 +33,14 @@
   commands with an explicit approval between them. The close-protocol approval covers the
   specification; it was never approval to publish the raw transcript and the user's own documents.
 
+### Fixed
+
+- **`grimoire preflight` did not run the test suite**, though its own help text said it did and
+  `npm run preflight` does. Two doors onto the same gate, and the one that skipped tests still
+  printed a pass — so whichever a contributor happened to use decided whether tests ran at all. The
+  CLI now runs them first, refuses to report a pass if it cannot find the suite, and a test asserts
+  the two entry points cover the same four gates.
+
 ## 0.3.0
 
 ### Added

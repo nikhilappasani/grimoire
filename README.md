@@ -3,8 +3,9 @@
 **Get what's in an expert's head out of their head — into something a machine can build from and a human can review.**
 
 Grimoire is a collection of agent skills. The first one, **LoreWeaver**, interviews you (or a
-colleague) about something you know how to do, and turns that conversation into two durable files: a
-specification of the capability, and a knowledge base of the facts behind it.
+colleague) about something you know how to do, and turns that conversation into three durable
+things: a specification of the capability, a knowledge base of the facts behind it, and the raw
+interview itself — which it then offers to publish for your team to review.
 
 It works with Claude Code, Codex, GitHub Copilot / VS Code, and pi.
 
@@ -60,7 +61,7 @@ So Grimoire separates two jobs that are usually mashed together:
 
 | Job | Who does it | Output |
 |---|---|---|
-| **Specify** — find out what's actually needed | LoreWeaver (this repo) | A specification + a knowledge base |
+| **Specify** — find out what's actually needed | LoreWeaver (this repo) | A specification, a knowledge base, and the evidence behind both |
 | **Realize** — build the thing | A separate generator skill, built later | Code, skills, docs — regenerable |
 
 Keeping them apart is the whole point. If the interviewer could also write the code, everyone would
@@ -68,7 +69,7 @@ skip straight to the code and the specification would become a formality nobody 
 
 ## What's in the box
 
-**v0.1.0 — LoreWeaver only.**
+**v0.4.0 — LoreWeaver only.**
 
 LoreWeaver is a structured interview. It asks one question at a time, adapts its questions to the
 kind of work you're describing, and refuses to make things up. When it doesn't know something, it
@@ -79,6 +80,11 @@ At the end you get:
 
 - **A Capability Specification** — a reviewable markdown document describing the capability.
 - **A knowledge bundle** — one markdown file per concept, each recording where the fact came from.
+- **The compendium** — the full transcript plus any documents you handed over, kept as raw evidence.
+
+It then shows you that evidence and, once you approve it, opens a pull request on your team's
+Compendium repository — no `gh` CLI, no tokens, nothing for you to set up. See
+[Publishing a capture](#publishing-a-capture).
 
 Plus the tooling to install it into your editor, validate what it produces, and share it with your
 team.
@@ -88,7 +94,7 @@ team.
 Five minutes, assuming you have Node 20 or newer and Claude Code.
 
 ```bash
-git clone <your-repo-url> grimoire
+git clone https://github.com/nikhilappasani/grimoire.git
 cd grimoire
 npm install -g .                              # installs the `grimoire` command
 grimoire sync                                 # build the editor artifacts
@@ -117,7 +123,7 @@ node --version   # must be v20 or higher
 ### Step 1 — get the code
 
 ```bash
-git clone <your-repo-url> grimoire
+git clone https://github.com/nikhilappasani/grimoire.git
 cd grimoire
 ```
 
@@ -276,7 +282,29 @@ Records are held a minimum of seven years from close. See [Purge Playbook](../pl
 Every concept carries its provenance, so six months later you can trace any claim back to its source
 and check whether it's still true.
 
-### 3. The Design Record
+### 3. The compendium — the raw evidence
+
+Everything above is *distilled*. The compendium is what it was distilled from: the full interview,
+question by question, plus every document you supplied, stored as you gave it.
+
+```text
+compendium/
+└── nightly-loader/
+    ├── transcript.md      the whole Q&A, verbatim, in order
+    └── documents/         the runbook, the diagram, the spreadsheet — as supplied
+```
+
+Why keep it separately from the knowledge base? Because they have opposite jobs. The knowledge base
+holds small, curated facts a skill reads while it runs, so it needs to stay clean. The compendium
+holds bulky, unfiltered material a *human* reads when they want to check whether a fact was captured
+correctly. Mixing them would bury the first in the second.
+
+The same sensitivity rule applies here: a confidential document is never copied in. It gets a short
+neutral note and a link to where it actually lives.
+
+This is the part that gets published for review — see [Publishing a capture](#publishing-a-capture).
+
+### 4. The Design Record
 
 An appendix inside the specification holding the *reasoning* — decisions made, alternatives rejected,
 assumptions resolved. This is why the spec says what it says. It never enters the knowledge base,
@@ -435,7 +463,7 @@ feed it to an agent as the ground truth for building something. Same files, thre
 
 ```json
 {
-  "contentVersion": "0.3.0",
+  "contentVersion": "0.4.0",
   "specVersion": "0.2.0",
   "roots": {
     "specs": "./specs",
@@ -528,15 +556,21 @@ Not happy with what you see? Ask for changes and review again. Nothing has been 
 
 ### What it actually does
 
+These are the eight steps it prints as it goes, so the terminal output and this table match:
+
 | Step | What happens |
 |---|---|
-| 1. Resolve | Finds the Compendium clone, or clones `compendiumRepository` to `~/.grimoire/compendium` |
-| 2. Import | Copies `<slug>/transcript.md` + `<slug>/documents/` into the clone if they were staged elsewhere |
-| 3. Secret scan | Scans every file. **A hit blocks the publish. There is no override flag.** |
-| 4. Confirm content | Shows the content; requires your approved digest, rechecked against disk |
-| 5. Branch | Cuts `compendium/<slug>` from the remote's tip — never commits to `main` |
-| 6. Push | Plain `git push -u origin <branch>`. Never `--force` |
-| 7. Report | Prints the branch, the PR list URL, and a manual compare URL as a fallback |
+| 1. resolve | Works out which Compendium clone to use |
+| 2. prepare clone | Clones `compendiumRepository` to `~/.grimoire/compendium` on first use, then fetches |
+| 3. import artifacts | Copies `<slug>/transcript.md` + `<slug>/documents/` into the clone if they were staged elsewhere |
+| 4. secret scan | Scans every file. **A hit blocks the publish. There is no override flag.** |
+| 5. confirm content | Shows the content; requires your approved digest, rechecked against disk |
+| 6. branch + commit | Cuts `compendium/<slug>` from the remote's tip — never commits to `main` |
+| 7. push | Plain `git push -u origin <branch>`. Never `--force` |
+| 8. report | Prints the branch, the PR list URL, and a manual compare URL as a fallback |
+
+If a step fails, every step is printed with its outcome — what succeeded, what failed, and what was
+skipped — so you never have to guess how far it got.
 
 Running it yourself in a terminal collapses the two phases into one: it prints the content (first 40
 lines of each file, with `--review` for the rest) and asks `Publish this content for review? [y/N]`.
@@ -585,7 +619,7 @@ Publishing the same slug twice never overwrites the first branch. It gets `compe
 
 ```bash
 # They run:
-git clone <your-repo-url> grimoire
+git clone https://github.com/nikhilappasani/grimoire.git
 cd grimoire
 npm install -g .
 grimoire sync
@@ -599,12 +633,12 @@ Everyone stays on the same version, and improvements flow through git like any o
 For someone who can't reach your git host:
 
 ```bash
-npm pack                 # produces nikhilappasani-grimoire-0.1.0.tgz
+npm pack                 # produces nikhilappasani-grimoire-0.4.0.tgz
 ```
 
 ```bash
 # They run:
-npm install -g ./nikhilappasani-grimoire-0.1.0.tgz
+npm install -g ./nikhilappasani-grimoire-0.4.0.tgz
 grimoire sync
 grimoire install --target claude-code --home
 ```
@@ -652,7 +686,7 @@ grimoire/
 │   ├── SKILL.md              ← the only source of truth
 │   └── references/           ← loaded on demand
 ├── tools/                    ← validators + shared parsers + tests
-├── scripts/                  ← sync + install
+├── scripts/                  ← sync + install + publish
 ├── bin/grimoire.js           ← CLI
 ├── specs/ knowledge/ compendium/ ← default output roots
 └── CONVENTIONS.md            ← binding rules for contributors
@@ -661,7 +695,7 @@ grimoire/
 ### The checks
 
 ```bash
-npm test                # 20 fixture tests over the shared parsers
+npm test                # 75 tests: shared parsers, publish rules, and a real end-to-end push
 npm run validate        # structure: manifests, frontmatter, naming, version lockstep
 npm run lint            # skill quality: description, body length, links, self-containment
 npm run check-knowledge # knowledge base: vocabulary, provenance, confidential-is-link-only
@@ -782,7 +816,10 @@ question genuinely doesn't apply, say so — it'll mark it and move on.
 | **Role bank** | A set of questions specific to a kind of work, layered onto the base interview. |
 | **Harness** | An editor or agent runtime — Claude Code, Codex, Copilot, pi. |
 | **Fail closed** | When unsure, stop and mark it rather than guess. |
+| **Compendium** | The raw evidence repo — full transcripts and supplied documents, one folder per capability. |
+| **Digest** | A 12-character fingerprint of exactly what would be published. Ties your approval to those exact bytes. |
+| **Slug** | The short kebab-case name of a capability (`nightly-loader`). Used as its folder and its branch name. |
 
 ---
 
-**v0.1.0** · Node ≥ 20 · zero runtime dependencies · [MIT](./LICENSE) · see [CHANGELOG.md](./CHANGELOG.md)
+**v0.4.0** · Node ≥ 20 · zero runtime dependencies · [MIT](./LICENSE) · see [CHANGELOG.md](./CHANGELOG.md)

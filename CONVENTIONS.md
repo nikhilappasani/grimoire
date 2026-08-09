@@ -12,7 +12,8 @@ grimoire/
 ├── package.json                 # npm manifest; version is the release version
 ├── grimoire.config.json         # content version, output roots, harness targets
 ├── CONVENTIONS.md               # this file
-├── bin/grimoire.js              # CLI entry: sync | install | validate
+├── bin/grimoire.js              # CLI entry: sync | install | compendium-push | validate |
+│                                #            lint | check-knowledge | preflight
 ├── skills/
 │   └── <skill-name>/
 │       ├── SKILL.md             # the only source of truth for the skill
@@ -26,7 +27,8 @@ grimoire/
 │   └── __tests__/               # fixtures + node:test runner
 ├── scripts/
 │   ├── sync-skills.js           # SKILL.md → per-harness artifacts
-│   └── install.js               # local install, sandbox by default
+│   ├── install.js               # local install, sandbox by default
+│   └── compendium-push.js       # the only path that writes to a remote — see §6a
 ├── specs/                       # emitted Capability Specifications
 ├── knowledge/                   # emitted OKF knowledge bundle
 └── compendium/                  # emitted interview transcripts + supplied documents
@@ -107,10 +109,22 @@ spawning, no filesystem — so every rule guarding that write is unit-testable w
 
 If you add a feature that needs to reach a remote, extend that script. Do not add a second one, and
 do not spawn git from a skill: the value of a single governed path is that reviewers have exactly
-one file to audit. Its guarantees — secret scan with no override, never `main`, never `--force`,
-never merge, never overwrite an existing branch — are enforced in code and covered by
-`tools/__tests__/compendium-push.integration.test.js`, which runs the real script against a
-throwaway bare-repo pair. Changing any of them means changing that test, deliberately.
+one file to audit.
+
+Its guarantees are enforced in code, not prose:
+
+| Guarantee | How it is enforced |
+|---|---|
+| Nothing publishes unread | `--auto` requires `--reviewed <digest>`; the digest is recomputed from disk and must match |
+| No secrets published | `scanForSecrets` runs before any git write; a hit throws, and no override flag exists |
+| `main` is never written | Commits land on a `compendium/<slug>` branch cut from the remote's tip |
+| No history rewritten | `--force` appears nowhere; an existing branch name is never reused |
+| Nothing merges itself | The script has no merge, close, or approve path at all |
+| No silent partial state | Every step records its outcome; a failure prints all eight with what was skipped |
+
+All six are covered by `tools/__tests__/compendium-push.integration.test.js`, which runs the real
+script against a throwaway bare-repo pair under `os.tmpdir()` — offline, no GitHub. Changing any of
+them means changing that test, deliberately.
 
 ## 7. Generated artifacts
 
@@ -136,7 +150,10 @@ These are inherited by every skill in the suite and are not per-skill choices:
   secrets or personal data, is never copied into a knowledge body — a short neutral summary plus a
   `resource:` link.
 - **No real personal data.** Examples are synthetic, always.
-- **Confirm before irreversible or network-affecting actions.**
+- **Confirm before irreversible or network-affecting actions**, and confirm the *content*, not just
+  the intent. Showing a file list is not consent to publish what is inside those files. Where the
+  action is irreversible — anything that reaches a remote — bind the approval to the exact bytes
+  approved rather than trusting that they have not changed since (§6a).
 - **No silent partial writes.** A multi-step write that fails mid-run reports which step failed and
   what state each target is in.
 

@@ -114,6 +114,25 @@ test('outside any repository, both fall back to the installed package', () => {
   assert.equal(typeof readConfig(outside).contentVersion, 'string');
 });
 
+test('grimoire preflight runs the same gates npm run preflight does', () => {
+  // These are two doors onto the same gate. `grimoire preflight` used to skip the test suite while
+  // its help text claimed otherwise, so whichever door a contributor happened to use decided
+  // whether tests ran at all — and the one that skipped them still printed a pass.
+  const cli = fs.readFileSync(path.join(PACKAGE_ROOT, 'bin', 'grimoire.js'), 'utf8');
+  const npmScript = JSON.parse(fs.readFileSync(path.join(PACKAGE_ROOT, 'package.json'), 'utf8'))
+    .scripts.preflight;
+
+  for (const gate of ['test', 'validate', 'lint', 'check-knowledge']) {
+    assert.ok(npmScript.includes(gate), `npm run preflight must run ${gate}`);
+  }
+
+  const cliPreflight = cli.slice(cli.indexOf("command === 'preflight'"));
+  assert.match(cliPreflight, /runTests\(base\)/, 'CLI preflight must run the test suite');
+  for (const script of ['validate-plugin.js', 'lint-skills.js', 'check-knowledge-bundle.js']) {
+    assert.ok(cliPreflight.includes(script), `CLI preflight must run ${script}`);
+  }
+});
+
 test('PACKAGE_ROOT is a real directory containing the package manifest', () => {
   // Regression guard: this was previously derived with `new URL(...).pathname`, which yields an
   // unusable "/C:/..." path on Windows.
