@@ -91,6 +91,19 @@ export const CATEGORIES = [
 export const ACCESS_STATES = ['extracted', 'linked', 'pending'];
 export const SENSITIVITIES = ['public', 'internal', 'confidential'];
 
+/**
+ * Files inside a bundle that are navigation or notes, not concepts, and so are not validated as
+ * concepts. Both gates that walk a bundle read this list; two copies would eventually disagree
+ * about whether a given file must carry a `type`.
+ */
+export const NON_CONCEPT_FILES = new Set(['index.md', 'log.md', 'README.md']);
+
+/** Whether a bundle-relative path is a concept file rather than navigation or notes. */
+export function isConceptFile(relativePath) {
+  const name = relativePath.split(/[/\\]/).pop() ?? '';
+  return name.endsWith('.md') && !NON_CONCEPT_FILES.has(name);
+}
+
 /** ISO-8601 calendar date, not a full timestamp: provenance is dated, not clocked. */
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 

@@ -17,7 +17,13 @@ import path from 'node:path';
 
 import { parseFrontmatter } from './lib/frontmatter.js';
 import { findBrokenLinks } from './lib/links.js';
-import { validateConcept, verifyVocabularyAgainstDoc, checkPlacement, CATEGORIES } from './lib/okf.js';
+import {
+  validateConcept,
+  verifyVocabularyAgainstDoc,
+  checkPlacement,
+  isConceptFile,
+  CATEGORIES,
+} from './lib/okf.js';
 import { validateCaptureHeader } from './lib/capture.js';
 import { Report, parseFlags } from './lib/report.js';
 
@@ -32,7 +38,6 @@ const OKF_DOC_RELATIVE = path.join(
 // one worth gating. `backup/` holds imported reference material that is not ours to validate.
 const SKIP_DIRS = new Set(['node_modules', 'backup', '__tests__']);
 const isSkipped = (name) => SKIP_DIRS.has(name) || name.startsWith('.');
-const NON_CONCEPT_FILES = new Set(['index.md', 'log.md', 'README.md']);
 
 function findKnowledgeDirs(root) {
   const found = [];
@@ -64,7 +69,7 @@ function collectConcepts(knowledgeDir) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) walk(full);
-      else if (entry.name.endsWith('.md') && !NON_CONCEPT_FILES.has(entry.name)) concepts.push(full);
+      else if (isConceptFile(entry.name)) concepts.push(full);
     }
   };
   walk(knowledgeDir);
@@ -101,17 +106,38 @@ function resolveCategories(root) {
 }
 
 /**
- * Validate every `<slug>/transcript.md` capture header found beneath the root.
+ * Find every capture beneath the root.
  *
- * Captures live next to their knowledge bundles, so the same walk that finds one finds the other:
- * a bundle at `<x>/knowledge` implies a capture at `<x>/transcript.md`.
+ * A capture is defined by having a `transcript.md`, NOT by having a knowledge bundle. Deriving
+ * captures from `knowledge/` directories misses the real case where an interview produced no
+ * distillable concepts — every source confidential and therefore link-only, say — which left the
+ * capture entirely unvalidated.
  */
-function checkCaptureHeaders(root, knowledgeDirs, categories, report) {
-  for (const knowledgeDir of knowledgeDirs) {
-    const slugDir = path.dirname(knowledgeDir);
-    const transcript = path.join(slugDir, 'transcript.md');
-    if (!fs.existsSync(transcript)) continue; // a bare knowledge root is not a capture
+function findCaptures(root) {
+  const found = [];
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    if (entries.some((e) => e.isFile() && e.name === 'transcript.md')) {
+      found.push(path.join(dir, 'transcript.md'));
+      return; // a capture never nests inside another capture
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory() && !isSkipped(entry.name)) walk(path.join(dir, entry.name));
+    }
+  };
+  walk(root);
+  return found.sort();
+}
 
+/** Validate the capture header on every `<slug>/transcript.md` beneath the root. */
+function checkCaptureHeaders(root, categories, report) {
+  for (const transcript of findCaptures(root)) {
+    const slugDir = path.dirname(transcript);
     const label = path.relative(root, transcript) || transcript;
     const parsed = parseFrontmatter(fs.readFileSync(transcript, 'utf8'));
 
@@ -150,7 +176,7 @@ function main() {
     report.notice('knowledge/', 'No knowledge bundle found yet — nothing to check.');
   }
 
-  checkCaptureHeaders(root, knowledgeDirs, categories, report);
+  checkCaptureHeaders(root, categories, report);
 
   for (const dir of knowledgeDirs) {
     const concepts = collectConcepts(dir);

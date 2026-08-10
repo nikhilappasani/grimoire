@@ -40,6 +40,7 @@ import { readConfig } from '../tools/lib/config.js';
 import { collectFiles } from '../tools/lib/fs-walk.js';
 import { parseFrontmatter } from '../tools/lib/frontmatter.js';
 import { validateCaptureHeader } from '../tools/lib/capture.js';
+import { validateConcept, checkPlacement, isConceptFile } from '../tools/lib/okf.js';
 import {
   scanForSecrets,
   parseRemoteUrl,
@@ -108,6 +109,39 @@ function git(cloneDir, gitArgs, { allowFail = false, identity = false } = {}) {
     throw new PublishError(`git ${gitArgs.join(' ')} failed: ${(result.stderr || result.stdout || '').trim()}`);
   }
   return result;
+}
+
+/**
+ * Validate every concept under `<slugDir>/knowledge/`, returning one message per problem.
+ *
+ * Reuses the same pure rules `check-knowledge-bundle.js` runs, so the two gates cannot disagree
+ * about what a valid concept is.
+ */
+function validateConceptsUnder(slugDir, slug, categories) {
+  const bundle = path.join(slugDir, 'knowledge');
+  if (!fs.existsSync(bundle)) return [];
+
+  const problems = [];
+
+  for (const relative of collectFiles(bundle)) {
+    if (!isConceptFile(relative)) continue;
+
+    const label = path.join(slug, 'knowledge', relative);
+    const source = fs.readFileSync(path.join(bundle, relative), 'utf8');
+    const parsed = parseFrontmatter(source);
+
+    if (!parsed.found) {
+      problems.push(`${label}: no frontmatter block.`);
+      continue;
+    }
+    const body = source.split(/\r?\n/).slice(parsed.bodyStartLine - 1).join('\n');
+    for (const message of validateConcept({ data: parsed.data, body, categories }).errors) {
+      problems.push(`${label}: ${message}`);
+    }
+    const misplaced = checkPlacement(relative, String(parsed.data.type ?? '').trim());
+    if (misplaced) problems.push(`${label}: ${misplaced}`);
+  }
+  return problems;
 }
 
 /** Whether two capture directories hold different files or different bytes. */
@@ -192,6 +226,11 @@ async function main() {
     }
 
     const config = readConfig();
+    // Same guard check-knowledge-bundle.js applies: a malformed `categories` falls back to the
+    // shipped list rather than being handed to the validators as a string.
+    const categories = Array.isArray(config.categories) && config.categories.length > 0
+      ? config.categories
+      : undefined;
     const plan = planRootResolution({
       explicitRoot: args.root,
       envRoot: process.env.GRIMOIRE_COMPENDIUM_ROOT,
@@ -291,7 +330,7 @@ async function main() {
     }
     const headerCheck = validateCaptureHeader(header.data, {
       slug: args.slug,
-      categories: config.categories,
+      categories,
     });
     if (headerCheck.errors.length > 0) {
       throw new PublishError(
@@ -300,6 +339,19 @@ async function main() {
       );
     }
     for (const warning of headerCheck.warnings) log(`warn      ${warning}`);
+
+    // Concepts are validated here as well as in preflight, because preflight is a contributor's
+    // gate: someone being interviewed never runs it. Publish is the only check standing between a
+    // malformed concept and a pull request, and the same "not fixable in private afterwards"
+    // argument that justifies the header check applies to what the concepts claim.
+    const conceptProblems = validateConceptsUnder(effectiveSlugDir, args.slug, categories);
+    if (conceptProblems.length > 0) {
+      throw new PublishError(
+        `${args.slug} has ${conceptProblems.length} invalid concept file(s):\n` +
+          conceptProblems.map((message) => `    ${message}`).join('\n') +
+          '\nFix them and re-run; `grimoire check-knowledge` reports the same problems.'
+      );
+    }
     // Unrelated dirty state outside the slug must never be swept into this commit.
     const dirty = git(cloneDir, ['status', '--porcelain'])
       .stdout.split('\n')

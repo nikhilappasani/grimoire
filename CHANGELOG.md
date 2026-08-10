@@ -52,6 +52,19 @@
 
 ### Fixed
 
+- **Nothing validated a capture's concepts before they reached a pull request.** `compendium-push`
+  enforced the transcript header but not the concept files, so a capture with an invalid `category`,
+  an unknown `source_system` and a malformed `timestamp` published cleanly. `check-knowledge` caught
+  it, but that is a contributor's gate: someone being interviewed never runs it, so in the real flow
+  (interview → publish → PR) there was no check at all. Publish now runs the same rules, reusing
+  `validateConcept` and `checkPlacement` so the two gates cannot disagree about what is valid.
+
+- **A capture with no `knowledge/` directory was never header-checked.** `check-knowledge-bundle`
+  derived captures from knowledge bundles, which is backwards: a capture is defined by having a
+  `transcript.md`. An interview whose every source was confidential, and therefore link-only,
+  produces no concepts and so slipped past the gate entirely. Captures are now found by their
+  transcript.
+
 - **A diverged staging copy was silently ignored.** Once a slug existed in the compendium clone,
   `compendium-push` never re-imported from the staging root — so editing a capture and re-publishing
   shipped the stale clone copy. The user would review what they wrote and publish something else.

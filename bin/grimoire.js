@@ -76,7 +76,8 @@ Commands:
                       --auto       non-interactive; requires --reviewed <digest>
                       --reviewed   the digest the user approved; rechecked before pushing
                       --dry-run    print the plan, push nothing
-                      --from       staging root holding <slug>/ if outside the clone
+                      --from       staging root holding <slug>/; also names the authoritative
+                                   copy when a clone copy exists and differs
   validate          Structural gate: manifests, skill frontmatter, naming, version lockstep
   lint              Skill-quality gate: description, body length, links, self-containment
   check-knowledge   OKF gate: type vocabulary, confidential-is-link-only, provenance

@@ -8,6 +8,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -138,4 +139,20 @@ test('PACKAGE_ROOT is a real directory containing the package manifest', () => {
   // unusable "/C:/..." path on Windows.
   assert.ok(fs.existsSync(path.join(PACKAGE_ROOT, 'package.json')));
   assert.ok(fs.existsSync(path.join(PACKAGE_ROOT, 'grimoire.config.json')));
+});
+
+test('a capture is found by its transcript, not by having a knowledge bundle', (t) => {
+  // Captures used to be derived from `knowledge/` directories, so an interview that produced no
+  // concepts — every source confidential and therefore link-only — was never header-checked at all.
+  const root = tempTree(t, {
+    'compendium/no-concepts/transcript.md': '# Transcript\n\nNo header.\n',
+    'compendium/with-concepts/transcript.md': '# Transcript\n\nNo header.\n',
+    'compendium/with-concepts/knowledge/references/x.md': '# X\n',
+  });
+  const gate = path.join(PACKAGE_ROOT, 'tools', 'check-knowledge-bundle.js');
+  const result = spawnSync(process.execPath, [gate, root], { encoding: 'utf8' });
+
+  assert.equal(result.status, 1, 'both captures must fail for a missing header');
+  assert.match(result.stdout, /no-concepts[/\\]transcript\.md/);
+  assert.match(result.stdout, /with-concepts[/\\]transcript\.md/);
 });

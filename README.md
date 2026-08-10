@@ -653,6 +653,7 @@ These are the eight steps it prints as it goes, so the terminal output and this 
 | 1. resolve | Works out which Compendium clone to use |
 | 2. prepare clone | Clones `compendiumRepository` to `~/.grimoire/compendium` on first use, then fetches |
 | 3. import artifacts | Copies `<slug>/transcript.md` + `<slug>/documents/` into the clone if they were staged elsewhere |
+| 3b. validate | Capture header and every concept checked. Same rules `grimoire check-knowledge` runs |
 | 4. secret scan | Scans every file. **A hit blocks the publish. There is no override flag.** |
 | 5. confirm content | Shows the content; requires your approved digest, rechecked against disk |
 | 6. branch + commit | Cuts `compendium/<slug>` from the remote's tip, never committing to `main` |
@@ -798,7 +799,7 @@ grimoire/
 ### The checks
 
 ```bash
-npm test                # 102 tests: shared parsers, publish rules, and a real end-to-end push
+npm test                # 106 tests: shared parsers, publish rules, and a real end-to-end push
 npm run validate        # structure: manifests, frontmatter, naming, version lockstep
 npm run lint            # skill quality: description, body length, links, self-containment
 npm run check-knowledge # knowledge base: vocabulary, provenance, confidential-is-link-only

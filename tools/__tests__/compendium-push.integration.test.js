@@ -353,3 +353,55 @@ test('unrelated dirty state in the clone blocks the publish', (t) => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /unrelated uncommitted changes/);
 });
+
+test('an invalid concept blocks the publish, not just an invalid header', (t) => {
+  // preflight is a contributor's gate; someone being interviewed never runs it. Publish is the only
+  // check between a malformed concept and a pull request.
+  const { bare, clone } = makeRepoPair(t);
+  writeSlug(clone, 'bad-concept');
+  const bundle = path.join(clone, 'bad-concept', 'knowledge', 'references');
+  fs.mkdirSync(bundle, { recursive: true });
+  fs.writeFileSync(
+    path.join(bundle, 'x.md'),
+    '---\ntype: Reference\ncategory: Utterly Invalid\ntitle: X\nsource_system: Nowhere\ntimestamp: not-a-date\n---\n\n# X\n'
+  );
+
+  const result = runPush(clone, ['bad-concept', '--review']);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /invalid concept file/);
+  assert.match(result.stderr, /Invalid `category`/);
+  assert.match(result.stderr, /Invalid `source_system`/);
+  assert.match(result.stderr, /Invalid `timestamp`/);
+  assert.ok(!sh('git', ['-C', bare, 'branch', '--list']).stdout.includes('bad-concept'));
+});
+
+test('a concept in the wrong directory blocks the publish too', (t) => {
+  const { clone } = makeRepoPair(t);
+  writeSlug(clone, 'misfiled');
+  const bundle = path.join(clone, 'misfiled', 'knowledge', 'protocols');
+  fs.mkdirSync(bundle, { recursive: true });
+  fs.writeFileSync(
+    path.join(bundle, 'p.md'),
+    '---\ntype: Playbook\ncategory: Behavioral\ntitle: P\nsource_system: Tribal/interview\ntimestamp: 2026-08-10\n---\n\n# P\n'
+  );
+
+  const result = runPush(clone, ['misfiled', '--review']);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /belongs in playbooks\//);
+});
+
+test('a valid capture with a knowledge bundle publishes cleanly', (t) => {
+  // Guards against the new concept gate being too strict to let real captures through.
+  const { clone } = makeRepoPair(t);
+  writeSlug(clone, 'good-concept');
+  const bundle = path.join(clone, 'good-concept', 'knowledge', 'references');
+  fs.mkdirSync(bundle, { recursive: true });
+  fs.writeFileSync(
+    path.join(bundle, 'book.md'),
+    '---\ntype: Reference\ncategory: Domain Knowledge\ntitle: Book\nresource: https://example.com\nsource_system: Public docs\naccess_state: extracted\nsensitivity: public\ntimestamp: 2026-08-10\n---\n\n# Book\n'
+  );
+
+  const result = runPush(clone, ['good-concept', '--review']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /REVIEW — nothing written/);
+});
