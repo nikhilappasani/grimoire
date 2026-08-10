@@ -1,4 +1,4 @@
-# Capability Specification — Template & Emit Format
+# Capability Specification: Template & Emit Format
 
 - `spec_version`: 0.2.0
 
@@ -13,17 +13,17 @@ the source of truth.
 ## 1. Where to write it and how to name it
 
 - **Location:** the configured `specs` root. Resolution order is in
-  [OUTPUT-CONTRACT.md](./OUTPUT-CONTRACT.md) §1. A configured root that does not exist is an error —
+  [OUTPUT-CONTRACT.md](./OUTPUT-CONTRACT.md) §1. A configured root that does not exist is an error;
   ask the user, do not create it silently.
 - **Filename:** `<slug>-capability-spec.md`, where `<slug>` is the kebab-case of the capability name
   from `base.s1.q5`. "Claims Triage Diagnostician" → `claims-triage-diagnostician-capability-spec.md`.
   Every specification is uniquely named after the capability it describes, so they never collide.
-- **Collisions:** if that filename already exists — you are re-specifying the same capability — append
+- **Collisions:** if that filename already exists (you are re-specifying the same capability), append
   a date suffix: `<slug>-capability-spec-<YYYYMMDD>.md`. **Never overwrite a prior specification.**
 
 ## 2. Emit format
 
-Fill every section. Use `ASSUMPTION:` and `OPEN:` where unresolved — never a silent blank.
+Fill every section. Use `ASSUMPTION:` and `OPEN:` where unresolved, never a silent blank.
 
 ```markdown
 ---
@@ -42,7 +42,7 @@ emitted: <ISO-8601 date>
 - Dependencies: <other capabilities, or none>
 
 ## 1. Metadata
-- Summary: <one paragraph — what problem it solves, who benefits, why it exists>
+- Summary: <one paragraph: what problem it solves, who benefits, why it exists>
 - Personas: <list>
 - Working Domain: <domain>
 - Capability Category: Convention | Domain Knowledge | Execution Capability
@@ -62,9 +62,9 @@ emitted: <ISO-8601 date>
 - Near-misses that must NOT trigger it: <list>
 
 ## 5. Inputs
-- <input> — Required | Optional | Derived
+- <input>: Required | Optional | Derived
 ## 5b. Outputs
-- <artifact produced> — acceptance check: <how we know it is good>
+- <artifact produced>, acceptance check: <how we know it is good>
 
 ## 6. Enterprise Knowledge
 ### Conventions
@@ -72,8 +72,8 @@ emitted: <ISO-8601 date>
 ### Business/Domain Facts Required
 - <domain fact or contract the capability must know>  (mark OPEN: if not confirmed)
 ### External Systems
-- <system> — read-only | read-write
-### Knowledge Sources (provenance — becomes an OKF `knowledge/` bundle)
+- <system>: read-only | read-write
+### Knowledge Sources (provenance: becomes an OKF `knowledge/` bundle)
 Columns and their permitted values are defined in KNOWLEDGE-CAPTURE-OKF.md §8. Do not restate them.
 
 | Title | Type | Source system | Resource URL | Access state | Sensitivity |
@@ -87,11 +87,11 @@ Columns and their permitted values are defined in KNOWLEDGE-CAPTURE-OKF.md §8. 
 ## 7b. Constraints (hard "never" rules)
 - Never <...>
 ## 7c. Irreversible Actions
-- <action> — requires explicit human confirmation
+- <action>: requires explicit human confirmation
 
 ## 8. Success Criteria
 - <per-run observable success>
-## 8b. Evaluation Dimensions (ranked — top three)
+## 8b. Evaluation Dimensions (ranked, top three)
 1. <dimension>
 2. <dimension>
 3. <dimension>
@@ -111,10 +111,10 @@ Columns and their permitted values are defined in KNOWLEDGE-CAPTURE-OKF.md §8. 
 ## Open Items
 - OPEN: <unresolved question blocking finalization>
 
-## Appendix A — Design Record (interview provenance — an artifact, not runtime knowledge)
+## Appendix A: Design Record (interview provenance, an artifact not runtime knowledge)
 Captures the rationale the ten sections don't hold, so the specification can be audited and
 regenerated. This never enters the `knowledge/` bundle.
-- Interviewee: <name> — <role they answered in>
+- Interviewee: <name>, <role they answered in>
 - Interview date: <ISO-8601>
 - Theme: <dominant category> · Categories covered: <every category the interview touched>
 - Bank matched: <bank name> | none (universal fallback used)
@@ -127,7 +127,7 @@ regenerated. This never enters the `knowledge/` bundle.
 
 ## 3. The nine evaluation dimensions
 
-**This is the authoritative list.** `base.s7.q20` reads it to the user before asking for a ranking —
+**This is the authoritative list.** `base.s7.q20` reads it to the user before asking for a ranking;
 a ranking made against an invisible menu is arbitrary, and the ranking is load-bearing for whatever
 generates the implementation.
 
@@ -144,20 +144,20 @@ generates the implementation.
 | **Maintainability** | How easily can the generated implementation evolve? |
 
 Ranking the top three is a forcing function. If a user ranks all nine as critical, they have not made
-a trade-off — push back and make them choose.
+a trade-off; push back and make them choose.
 
 ## 4. Quality bar before you emit
 
 The process rules are in [GRILL-DISCIPLINE.md](./GRILL-DISCIPLINE.md). These are the pre-emit checks
 on the document itself:
 
-- Every section present. No silent blanks — `OPEN:` instead.
+- Every section present. No silent blanks; `OPEN:` instead.
 - **MECE knowledge inventory:** every source has exactly one location, one access state, one
   sensitivity; nothing relevant missing; nothing double-counted.
-- **No implementation artifacts inside the specification** — no prompt text, no `SKILL.md` body, no
+- **No implementation artifacts inside the specification:** no prompt text, no `SKILL.md` body, no
   manifest. If it belongs to the realization, it does not belong here.
 - No real personal or regulated data. Examples are synthetic. Sensitive sources are linked via
-  `resource:`, never copied — see [KNOWLEDGE-CAPTURE-OKF.md](./KNOWLEDGE-CAPTURE-OKF.md) §7.
+  `resource:`, never copied. See [KNOWLEDGE-CAPTURE-OKF.md](./KNOWLEDGE-CAPTURE-OKF.md) §7.
 - Outcomes are **observable**, not aspirational. "Improves data quality" fails; "flags unclassified
   columns before publish" passes.
 - Constraints include the non-negotiables in [OUTPUT-CONTRACT.md](./OUTPUT-CONTRACT.md) §5: no
@@ -165,4 +165,4 @@ on the document itself:
 - `Bank matched:` is filled in. If the universal fallback was used, it says so explicitly.
 
 ---
-*Capability Specification — product-spec format for stable intent and regenerable implementation.*
+*Capability Specification: product-spec format for stable intent and regenerable implementation.*

@@ -7,7 +7,7 @@ each concept's `type`.
 
 Nothing writes here during an interview. LoreWeaver puts an interview's concepts in
 `compendium/<slug>/knowledge/`, next to the transcript and documents they were drawn from, so a
-capture reviews as a single unit — see
+capture reviews as a single unit. See
 `skills/loreweaver/references/OUTPUT-CONTRACT.md` §1.
 
 Concepts arrive here **later**, promoted by the build step when an approved capture is turned into a
@@ -28,5 +28,5 @@ The folder-to-`type` mapping and the concept file format are in
 both wherever a bundle lives, here or under a capture.
 
 This directory is the **default** `knowledge` root. Override with `GRIMOIRE_KNOWLEDGE_ROOT` or
-`roots.knowledge` in `grimoire.config.json` — in practice, point it at its own repository so the
+`roots.knowledge` in `grimoire.config.json`. In practice, point it at its own repository so the
 knowledge outlives any one project.

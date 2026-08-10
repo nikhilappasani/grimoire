@@ -20,7 +20,7 @@ grimoire/
 │       └── references/          # progressive-disclosure detail, loaded on demand
 │           └── *.md
 ├── tools/
-│   ├── lib/                     # shared parsers — never duplicated in a validator
+│   ├── lib/                     # shared parsers, never duplicated in a validator
 │   ├── validate-plugin.js
 │   ├── lint-skills.js
 │   ├── check-knowledge-bundle.js
@@ -28,14 +28,14 @@ grimoire/
 ├── scripts/
 │   ├── sync-skills.js           # SKILL.md → per-harness artifacts
 │   ├── install.js               # local install, sandbox by default
-│   └── compendium-push.js       # the only path that writes to a remote — see §6a
+│   └── compendium-push.js       # the only path that writes to a remote (§6a)
 ├── specs/                       # emitted Capability Specifications
 ├── knowledge/                   # emitted OKF knowledge bundle
 └── compendium/                  # emitted interview transcripts + supplied documents
 ```
 
 `specs/`, `knowledge/`, and `compendium/` are **output roots**, not source. Their real location is
-resolved per §6 — the paths above are only the defaults.
+resolved per §6; the paths above are only the defaults.
 
 ## 2. Skill naming
 
@@ -54,12 +54,12 @@ resolved per §6 — the paths above are only the defaults.
   in full on every invocation is a tax on every session that never uses it.
 - **Frontmatter is an allow-list:** `name`, `description`, `content_version`,
   `disable-model-invocation`. Anything else is a lint error.
-- **`description` is the selection object** — the only field an agent sees when choosing a skill.
+- **`description` is the selection object:** the only field an agent sees when choosing a skill.
   - Max 1024 characters, third person.
   - States the capability, then `Use when …` triggers.
   - Never contains workflow steps, numbered phases, or gate prose. Those go in the body.
 - **Instructional prose is imperative and directive.** Use MUST, MUST NOT, NEVER, ALWAYS. Avoid
-  should, might, consider, generally — a hedge in a skill body is a rule an agent will skip.
+  should, might, consider, generally. A hedge in a skill body is a rule an agent will skip.
 - Every relative link must resolve. `lint-skills.js` enforces this case-sensitively.
 
 ## 4. Content versioning
@@ -69,7 +69,7 @@ The reference bundle under `skills/*/references/` is **content**, not code. It v
 - `contentVersion` in `grimoire.config.json` is one semver across the whole reference bundle.
 - `specVersion` is the Capability Specification template's schema version. Every emitted spec carries
   it in frontmatter so a template bump can flag stale specs later.
-- Every interview question carries a stable ID: `<bank>.<section>.<seq>` — `base.s4.q11`,
+- Every interview question carries a stable ID `<bank>.<section>.<seq>`: `base.s4.q11`,
   `diagnostic.q2`, `data-engineer.q3`. IDs are assigned once and **never reused**.
 - Rewording a question **keeps** its ID. Replacing its intent **retires** the ID and issues a new one.
   Retired IDs stay resolvable so historical answers still map.
@@ -98,7 +98,7 @@ it matched whichever authoritative claim appeared first in the file.
 ## 6. Output roots
 
 Emitted artifacts do not necessarily land in this repo. The **runtime contract is
-`skills/loreweaver/references/OUTPUT-CONTRACT.md`** — that file is the single source, because a skill
+`skills/loreweaver/references/OUTPUT-CONTRACT.md`**. That file is the single source, because a skill
 gets copied into several harnesses and must not depend on anything outside its own directory. This
 section summarizes it for contributors; it does not restate the rules authoritatively.
 
@@ -106,7 +106,7 @@ Roots are `specs`, `knowledge`, and `compendium`, each resolved from an explicit
 `GRIMOIRE_*_ROOT` environment variable, then `grimoire.config.json`. A configured root that does not
 exist is a fail-closed error, never a silent `mkdir -p`.
 
-**`compendium` receives everything an interview writes** — transcript, supplied documents, and the
+**`compendium` receives everything an interview writes:** transcript, supplied documents, and the
 OKF concepts distilled from them, all under one `<slug>/`. A capture reviews as a single unit;
 splitting it would mean reading two repositories to check one claim.
 
@@ -124,8 +124,8 @@ confidential-is-link-only rule applies everywhere.
 ### 6a. The one path that writes to a remote
 
 `scripts/compendium-push.js` is the **only** code in this repo permitted to run a network-write git
-operation, and `tools/lib/compendium-git.js` holds its decision logic as pure functions — no
-spawning, no filesystem — so every rule guarding that write is unit-testable without touching git.
+operation, and `tools/lib/compendium-git.js` holds its decision logic as pure functions with no
+spawning and no filesystem, so every rule guarding that write is unit-testable without touching git.
 
 If you add a feature that needs to reach a remote, extend that script. Do not add a second one, and
 do not spawn git from a skill: the value of a single governed path is that reviewers have exactly
@@ -143,7 +143,7 @@ Its guarantees are enforced in code, not prose:
 | No silent partial state | Every step records its outcome; a failure prints all eight with what was skipped |
 
 All six are covered by `tools/__tests__/compendium-push.integration.test.js`, which runs the real
-script against a throwaway bare-repo pair under `os.tmpdir()` — offline, no GitHub. Changing any of
+script against a throwaway bare-repo pair under `os.tmpdir()`, offline and without GitHub. Changing any of
 them means changing that test, deliberately.
 
 ## 7. Generated artifacts
@@ -167,17 +167,17 @@ These are inherited by every skill in the suite and are not per-skill choices:
 - **Never fabricate.** Missing rule, contract, or acceptance criterion becomes `OPEN:`. An inference
   becomes `ASSUMPTION:` and gets confirmed out loud.
 - **Confidential is link-only, no exceptions.** Content classified confidential, or containing
-  secrets or personal data, is never copied into a knowledge body — a short neutral summary plus a
+  secrets or personal data, is never copied into a knowledge body: a short neutral summary plus a
   `resource:` link.
 - **No real personal data.** Examples are synthetic, always.
 - **Confirm before irreversible or network-affecting actions**, and confirm the *content*, not just
   the intent. Showing a file list is not consent to publish what is inside those files. Where the
-  action is irreversible — anything that reaches a remote — bind the approval to the exact bytes
+  action is irreversible (anything that reaches a remote), bind the approval to the exact bytes
   approved rather than trusting that they have not changed since (§6a).
 - **No silent partial writes.** A multi-step write that fails mid-run reports which step failed and
   what state each target is in.
 
 ## 9. Definition of done
 
-A change is done when `npm run preflight` exits 0 — tests, then plugin validation, then skill lint,
+A change is done when `npm run preflight` exits 0: tests, then plugin validation, then skill lint,
 then the knowledge-bundle gate. Narration without that output is not evidence.

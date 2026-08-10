@@ -1,9 +1,9 @@
-# Knowledge Sourcing & Capture — Open Knowledge Format (OKF)
+# Knowledge Sourcing & Capture: Open Knowledge Format (OKF)
 
 Domain capabilities live or die on knowledge that is rarely in the repository. It sits in wikis,
 document stores, shared drives, code comments, or the heads of a few senior people. This file tells an
 interviewing skill how to **find that knowledge, get it out, and package it** so a generated skill can
-actually use it — and so it survives in version control.
+actually use it, and so it survives in version control.
 
 This file is the **single source** for: the `type` vocabulary (§3), the knowledge-item field list
 (§8), and the extraction and storage protocols. Nothing else restates them.
@@ -15,17 +15,17 @@ with YAML frontmatter. OKF is vendor-neutral, human- and agent-readable, renders
 in version control next to what it describes.
 Format background: <https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing/>
 
-- **Just markdown, just files, just frontmatter** — no SDK, renders anywhere, diff-able in review.
-- **`resource:` frontmatter plus inline links preserve provenance** — a concept keeps a live hyperlink
+- **Just markdown, just files, just frontmatter:** no SDK, renders anywhere, diff-able in review.
+- **`resource:` frontmatter plus inline links preserve provenance:** a concept keeps a live hyperlink
   back to its authoritative source.
-- **Cross-links form a graph** — concepts reference each other with ordinary relative markdown links.
+- **Cross-links form a graph:** concepts reference each other with ordinary relative markdown links.
   This is how a complex capability stitches terms, diagrams, and playbooks together, and it is why the
   bundle drops cleanly into a personal knowledge vault without conversion.
 
 ## 2. Bundle shape
 
 The bundle is written **inside the capability's compendium folder**, next to the evidence it was
-distilled from — never into a shared `knowledge/` root:
+distilled from, never into a shared `knowledge/` root:
 
 ```text
 compendium/<slug>/
@@ -41,7 +41,7 @@ compendium/<slug>/
 ```
 
 **Everything one interview produces travels together under one slug.** A capture is then reviewable
-as a single unit — transcript, sources, and the concepts drawn from them — instead of landing in two
+as a single unit (transcript, sources, and the concepts drawn from them) instead of landing in two
 repositories that must be read side by side to make sense of either.
 
 The shared `knowledge/` root still exists, but nothing writes to it at capture time. It is the
@@ -49,7 +49,7 @@ The shared `knowledge/` root still exists, but nothing writes to it at capture t
 there. That keeps the shared base curated by construction rather than accumulating every draft
 concept from every interview.
 
-**The subdirectory is decided by the concept's `type`** — this mapping is enforced by
+**The subdirectory is decided by the concept's `type`**, and this mapping is enforced by
 `check-knowledge-bundle.js`, because a path that disagrees with its type makes the folder tree lie:
 
 | `type` | Directory |
@@ -64,7 +64,7 @@ concept from every interview.
 | `API` | `apis/` |
 | `Dataset` | `datasets/` |
 
-One concept per file. **The file path is the concept's identity** — moving a concept breaks every link
+One concept per file. **The file path is the concept's identity.** Moving a concept breaks every link
 to it, so choose the path deliberately. NEVER invent a directory outside this table.
 
 ## 3. Concept file format
@@ -74,8 +74,8 @@ to it, so choose the path deliberately. NEVER invent a directory outside this ta
 type: <Glossary Term | Policy | Playbook | Runbook | Reference | Diagram | Process | API | Dataset>
 category: <Conventions | Domain Knowledge | External Systems | Persona | Behavioral>
 title: <human-readable name>
-description: <one line — WHAT this is>
-why: <one line — WHY it matters, or when it applies>
+description: <one line: WHAT this is>
+why: <one line: WHY it matters, or when it applies>
 resource: <absolute URL back to the authoritative source, or omit if none>
 tags: [<domain>, <subdomain>]
 timestamp: <ISO-8601 date, when captured or last verified>
@@ -94,13 +94,13 @@ e.g. see [Retention Window](../policies/retention-window.md).>
 
 `Glossary Term` · `Policy` · `Playbook` · `Runbook` · `Reference` · `Diagram` · `Process` · `API` · `Dataset`
 
-`Reference` is for an **external source of truth** the capability depends on but does not own — a
+`Reference` is for an **external source of truth** the capability depends on but does not own: a
 book, a specification, an official documentation site, a video series. Its body is a short neutral
 note on what the source covers and when to reach for it; the content itself stays behind the
 `resource:` link. Without this type, a cited book has to be mislabelled as a `Runbook`, which is how
 a bundle ends up lying about what it contains.
 
-### 3a. Classification — `type` and `category` are different questions
+### 3a. Classification: `type` and `category` are different questions
 
 `type` says what **shape** a fact is. `category` says what **area** it belongs to. Both are
 required, because either alone leaves a reader guessing: "a Playbook about release governance" and
@@ -115,11 +115,11 @@ required, because either alone leaves a reader guessing: "a Playbook about relea
 | `Conventions` | How work is done here: coding standards, naming, repository and project layout |
 | `Domain Knowledge` | The business itself: lifecycles, contracts, governance, domain rules |
 | `External Systems` | Systems and tooling the capability depends on but does not own |
-| `Persona` | Knowledge about a role — what it needs, produces, or is accountable for |
+| `Persona` | Knowledge about a role: what it needs, produces, or is accountable for |
 | `Behavioral` | How the capability itself must act: protocols, escalation paths, tone, refusals |
 
 **This list is a default, not a mandate.** An organisation replaces it wholesale with `categories`
-in `grimoire.config.json`. Concrete systems and roles — Jira, Jenkins, "Data Engineer" — are
+in `grimoire.config.json`. Concrete systems and roles (Jira, Jenkins, "Data Engineer") are
 **instances**, not categories: they belong in `tags:`. Baking one organisation's tooling into the
 vocabulary makes it wrong for everyone else.
 
@@ -131,7 +131,7 @@ Every one of these is validated. Provenance that fails open is not provenance.
 
 `Local file` · `Wiki` · `Document store` · `Code` · `Tribal/interview` · `Public docs`
 
-A shared drive or fileshare is a `Document store` — for tracing a fact, the distinction does not
+A shared drive or fileshare is a `Document store`; for tracing a fact, the distinction does not
 change anything.
 
 **`access_state` vocabulary — this list is authoritative.** Any other value is a validation error.
@@ -142,7 +142,7 @@ change anything.
 
 `public` · `internal` · `confidential`
 
-`timestamp` is an ISO-8601 **date** (`2026-08-10`), not a full clock time — provenance is dated, not
+`timestamp` is an ISO-8601 **date** (`2026-08-10`), not a full clock time: provenance is dated, not
 timed. A malformed value is an error rather than a warning: a date that cannot be compared looks
 like provenance while providing none.
 
@@ -164,7 +164,7 @@ never belong in `<slug>/knowledge/`:
 > **Litmus test:** *would the running skill read this file to do its job?*
 > Yes → knowledge. No, it is about how the skill was designed → artifact.
 
-## 5. Extraction protocol — by where the knowledge lives
+## 5. Extraction protocol: by where the knowledge lives
 
 Cover every source. Each item lands in exactly one lane.
 
@@ -173,20 +173,20 @@ Cover every source. Each item lands in exactly one lane.
 | **Local file in the workspace** | Yes | Read it, distill the durable knowledge into concept file(s), keep a relative link. Do not copy wholesale. |
 | **Auth-gated wiki / document store / intranet** | **No** | **Ask the user to extract** and paste or attach the relevant content. Record the page URL in `resource:`. Never guess the content behind a link you cannot open. |
 | **Code, comments, docstrings** | Yes, if in the workspace | Summarize the rule or contract into a concept; link to file and line. |
-| **Tribal — in someone's head** | No | Interview it out, one fact at a time. Mark unverified facts `OPEN:` until confirmed. |
+| **Tribal, in someone's head** | No | Interview it out, one fact at a time. Mark unverified facts `OPEN:` until confirmed. |
 | **External public docs** | Sometimes | If reachable and non-sensitive, cite with `resource:` plus a short distilled summary. Otherwise ask the user. |
 
 **Never fetch auth-gated content on the user's behalf.** Capture the link, record
 `access_state: pending`, and let the user supply the content.
 
-## 6. Storage decision — bundle or link
+## 6. Storage decision: bundle or link
 
 Decide per concept. The two lanes are mutually exclusive.
 
 | Choose | When | What lands in the bundle |
 |---|---|---|
 | **Bundle** (full body) | `sensitivity: public` or `internal`, stable, and useful to search offline | A concept file with the distilled knowledge in the body, plus `resource:` back to source |
-| **Link-only** (stub body) | `sensitivity: confidential`, contains secrets or personal data, is volatile, or is very large | A concept file that is a **short neutral summary** plus `resource:` — no sensitive content in the body |
+| **Link-only** (stub body) | `sensitivity: confidential`, contains secrets or personal data, is volatile, or is very large | A concept file that is a **short neutral summary** plus `resource:`, with no sensitive content in the body |
 
 Default to bundling when it is safe: an indexed concept is searchable, diff-able, and loads
 just-in-time. Fall back to link-only the moment sensitivity or volatility makes a copy risky or stale.
@@ -196,7 +196,7 @@ just-in-time. Fall back to link-only the moment sensitivity or volatility makes 
 
 - **Never fabricate.** If knowledge is gated and the user has not provided it, record the concept as a
   stub with `resource:` and `OPEN:`. Do not invent the body.
-- **Confidential is link-only — no exceptions.** Content marked `sensitivity: confidential`, or
+- **Confidential is link-only, no exceptions.** Content marked `sensitivity: confidential`, or
   containing secrets or personal data, is **never** copied into a concept body, even in a private
   repository. Store a short neutral summary plus the `resource:` link. This is a hard rule, not a
   preference, and `check-knowledge-bundle.js` enforces it as an error.
@@ -209,7 +209,7 @@ just-in-time. Fall back to link-only the moment sensitivity or volatility makes 
 
 For each knowledge item the specification must carry exactly the fields below. **This field list is
 the authoritative one**; `INTERVIEW.md` and `CAPABILITY-SPEC-TEMPLATE.md` reference it rather than
-restating it. The permitted *values* live in §3, §3a and §3b — this table points at them rather than
+restating it. The permitted *values* live in §3, §3a and §3b; this table points at them rather than
 repeating them, so there is one place to change when a vocabulary moves.
 
 | Field | Values |
@@ -230,7 +230,7 @@ Pending items stay `OPEN:` stubs until the user provides the content.
 - Keep `resource:` as **absolute** URLs so they resolve wherever the bundle is published.
 - Keep cross-concept links **relative** (`../glossary/term.md`) so they resolve inside the repository
   and inside a local vault.
-- The bundle is referenced from a generated `SKILL.md` via progressive disclosure — the skill loads one
+- The bundle is referenced from a generated `SKILL.md` via progressive disclosure, so the skill loads one
   concept just-in-time rather than inlining all knowledge.
 - Source documents the user supplied during the interview are filed under the configured
   `compendium` root, not inside `knowledge/`. The concept links to them; the bundle stays distilled.
