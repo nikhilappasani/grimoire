@@ -42,10 +42,31 @@ function makeRepoPair(t) {
   return { base, bare, clone };
 }
 
-function writeSlug(root, slug, transcript = '# Transcript\n\nQ/A content, nothing sensitive.\n') {
+/** A valid capture header for `slug` — publishing refuses a transcript without one. */
+function captureHeader(slug) {
+  return [
+    '---',
+    `slug: ${slug}`,
+    `title: ${slug}`,
+    'theme: Domain Knowledge',
+    'categories: [Domain Knowledge]',
+    'interviewee: test-subject',
+    'interviewee_role: Engineer',
+    'interviewer: LoreWeaver (Grimoire)',
+    'date: 2026-08-10',
+    'content_version: 0.6.0',
+    'spec_version: 0.2.0',
+    'banks_used: [Authoring]',
+    `spec: specs/${slug}-capability-spec.md`,
+    '---',
+    '',
+  ].join('\n');
+}
+
+function writeSlug(root, slug, body = '# Transcript\n\nQ/A content, nothing sensitive.\n') {
   const dir = path.join(root, slug);
   fs.mkdirSync(path.join(dir, 'documents'), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'transcript.md'), transcript);
+  fs.writeFileSync(path.join(dir, 'transcript.md'), captureHeader(slug) + body);
   fs.writeFileSync(path.join(dir, 'documents', 'notes.md'), '# Supplied notes\n');
 }
 
@@ -237,6 +258,48 @@ test('without a TTY and without a digest, the publish stops rather than assuming
   const result = runPush(clone, ['headless']);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /No TTY for confirmation, and no approved digest/);
+});
+
+test('a capture with no header, or a header naming another slug, cannot be published', (t) => {
+  const { bare, clone } = makeRepoPair(t);
+
+  writeSlug(clone, 'headerless');
+  fs.writeFileSync(path.join(clone, 'headerless', 'transcript.md'), '# Transcript\n\nNo header.\n');
+  const missing = runPush(clone, ['headerless', '--review']);
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, /has no capture header/);
+
+  writeSlug(clone, 'mislabelled');
+  const wrong = fs
+    .readFileSync(path.join(clone, 'mislabelled', 'transcript.md'), 'utf8')
+    .replace('slug: mislabelled', 'slug: somewhere-else');
+  fs.writeFileSync(path.join(clone, 'mislabelled', 'transcript.md'), wrong);
+  const mismatch = runPush(clone, ['mislabelled', '--review']);
+  assert.equal(mismatch.status, 1);
+  assert.match(mismatch.stderr, /lives in mislabelled\//);
+
+  assert.ok(!sh('git', ['-C', bare, 'branch', '--list']).stdout.includes('headerless'));
+});
+
+test('diverged staging and clone copies are refused rather than silently resolved', (t) => {
+  // The clone copy used to win unconditionally, so editing the staging copy and re-publishing
+  // shipped the stale one — the user reviews what they wrote and ships something else.
+  const { clone, base } = makeRepoPair(t);
+  const staging = path.join(base, 'staging');
+  fs.mkdirSync(staging, { recursive: true });
+
+  writeSlug(clone, 'two-copies', '# Transcript\n\nThe clone copy.\n');
+  writeSlug(staging, 'two-copies', '# Transcript\n\nThe edited staging copy.\n');
+
+  const refused = spawnSync(process.execPath, [SCRIPT, 'two-copies', '--from', staging, '--review'], {
+    encoding: 'utf8',
+    env: { ...process.env, GRIMOIRE_COMPENDIUM_ROOT: clone },
+    cwd: staging,
+  });
+  // With --from the caller has said which copy is authoritative, so it refreshes and proceeds.
+  assert.equal(refused.status, 0, refused.stderr);
+  assert.match(refused.stdout, /refresh/);
+  assert.match(fs.readFileSync(path.join(clone, 'two-copies', 'transcript.md'), 'utf8'), /edited staging copy/);
 });
 
 test('a malformed flag fails as a reported step, not an unhandled exception', (t) => {

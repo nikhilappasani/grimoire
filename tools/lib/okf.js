@@ -68,19 +68,60 @@ export const SOURCE_SYSTEMS = [
   'Public docs',
 ];
 
+/**
+ * What area of the work a concept concerns — the second classification axis, orthogonal to `type`.
+ *
+ * `type` says what *shape* a fact is (a Policy, a Playbook, a Reference). `category` says what area
+ * it *belongs to*. Both are needed: "a Playbook about release governance" and "a Playbook about
+ * naming standards" are the same shape and completely different things to a reader.
+ *
+ * These five ship as a **default**, not a mandate. Set `categories` in grimoire.config.json to
+ * replace the list wholesale. Concrete systems and roles — Jira, Harness, "Data Engineer" — belong
+ * in the free-text `tags:` array, never in this vocabulary: baking one organisation's tooling into
+ * the enum makes it wrong for everybody else.
+ */
+export const CATEGORIES = [
+  'Conventions',
+  'Domain Knowledge',
+  'External Systems',
+  'Persona',
+  'Behavioral',
+];
+
 export const ACCESS_STATES = ['extracted', 'linked', 'pending'];
 export const SENSITIVITIES = ['public', 'internal', 'confidential'];
 
-const AUTHORITATIVE_MARKER = 'this list is authoritative';
+/** ISO-8601 calendar date. Deliberately not a full timestamp — provenance is dated, not clocked. */
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * Pull the vocabulary out of the reference document so drift is detectable.
- * @param {string} docSource contents of KNOWLEDGE-CAPTURE-OKF.md
- * @returns {string[]|null} the documented vocabulary, or null if the marker was not found
+ * Vocabularies mirrored here that must stay identical to KNOWLEDGE-CAPTURE-OKF.md.
+ * The key is the name used in the document's marker line.
  */
-export function extractTypeVocabulary(docSource) {
+const DOCUMENTED_VOCABULARIES = {
+  type: TYPE_VOCABULARY,
+  source_system: SOURCE_SYSTEMS,
+  category: CATEGORIES,
+  access_state: ACCESS_STATES,
+  sensitivity: SENSITIVITIES,
+};
+
+/**
+ * Pull one named vocabulary out of the reference document so drift is detectable.
+ *
+ * Keyed on a *named* marker rather than a single global one. The previous version searched for the
+ * first line containing "this list is authoritative", which worked only because `.includes` is
+ * case-sensitive and §3 happened to precede §8's identically-worded claim — a second vocabulary
+ * would have silently matched the wrong table.
+ *
+ * @param {string} docSource contents of KNOWLEDGE-CAPTURE-OKF.md
+ * @param {string} name  the vocabulary's name, e.g. "type" or "source_system"
+ * @returns {string[]|null} the documented vocabulary, or null if its marker was not found
+ */
+export function extractVocabulary(docSource, name) {
   const lines = docSource.split(/\r?\n/);
-  const markerIndex = lines.findIndex((line) => line.includes(AUTHORITATIVE_MARKER));
+  const marker = `\`${name}\` vocabulary — this list is authoritative`;
+  const markerIndex = lines.findIndex((line) => line.includes(marker));
   if (markerIndex === -1) return null;
 
   for (let i = markerIndex + 1; i < Math.min(markerIndex + 6, lines.length); i++) {
@@ -91,26 +132,30 @@ export function extractTypeVocabulary(docSource) {
 }
 
 /**
+ * Verify every mirrored vocabulary still matches the reference document.
  * @param {string} docSource contents of KNOWLEDGE-CAPTURE-OKF.md
  * @returns {{ok: boolean, message?: string}}
  */
 export function verifyVocabularyAgainstDoc(docSource) {
-  const documented = extractTypeVocabulary(docSource);
-  if (documented === null) {
-    return {
-      ok: false,
-      message: `Could not find the authoritative type vocabulary in KNOWLEDGE-CAPTURE-OKF.md (looked for "${AUTHORITATIVE_MARKER}").`,
-    };
+  const problems = [];
+
+  for (const [name, inCode] of Object.entries(DOCUMENTED_VOCABULARIES)) {
+    const documented = extractVocabulary(docSource, name);
+    if (documented === null) {
+      problems.push(
+        `Could not find the authoritative \`${name}\` vocabulary in KNOWLEDGE-CAPTURE-OKF.md ` +
+          `(looked for "\`${name}\` vocabulary — this list is authoritative").`
+      );
+      continue;
+    }
+    if ([...documented].sort().join('|') !== [...inCode].sort().join('|')) {
+      problems.push(
+        `\`${name}\` vocabulary drift.\n  documented: ${documented.join(', ')}\n  in code:    ${inCode.join(', ')}`
+      );
+    }
   }
-  const a = [...documented].sort().join('|');
-  const b = [...TYPE_VOCABULARY].sort().join('|');
-  if (a !== b) {
-    return {
-      ok: false,
-      message: `Type vocabulary drift.\n  documented: ${documented.join(', ')}\n  in code:    ${TYPE_VOCABULARY.join(', ')}`,
-    };
-  }
-  return { ok: true };
+
+  return problems.length === 0 ? { ok: true } : { ok: false, message: problems.join('\n') };
 }
 
 /**
@@ -121,7 +166,7 @@ export function verifyVocabularyAgainstDoc(docSource) {
  * @param {string} args.body               file body after the frontmatter
  * @returns {{errors: string[], warnings: string[], notices: string[]}}
  */
-export function validateConcept({ data, body }) {
+export function validateConcept({ data, body, categories = CATEGORIES }) {
   const errors = [];
   const warnings = [];
   const notices = [];
@@ -132,6 +177,19 @@ export function validateConcept({ data, body }) {
   } else if (!TYPE_VOCABULARY.includes(type)) {
     errors.push(
       `Invalid \`type\`: "${type}". Permitted: ${TYPE_VOCABULARY.join(' | ')} (KNOWLEDGE-CAPTURE-OKF.md §3).`
+    );
+  }
+
+  // Category is an error rather than a warning, like type. A bundle where classification is
+  // optional is a bundle where it is absent, and the whole point is being able to see what a
+  // capture covered.
+  const category = typeof data.category === 'string' ? data.category.trim() : '';
+  if (category === '') {
+    errors.push('Missing required field `category` (KNOWLEDGE-CAPTURE-OKF.md §3).');
+  } else if (!categories.includes(category)) {
+    errors.push(
+      `Invalid \`category\`: "${category}". Permitted: ${categories.join(' | ')}. ` +
+        'Override the list with `categories` in grimoire.config.json; concrete systems and roles belong in `tags`.'
     );
   }
 
@@ -161,10 +219,25 @@ export function validateConcept({ data, body }) {
     errors.push(`Invalid \`access_state\`: "${accessState}". Permitted: ${ACCESS_STATES.join(' | ')}.`);
   }
 
+  // Provenance is the reason OKF exists. `source_system` had a vocabulary that nothing checked, so
+  // any string passed and the field recorded nothing reliable; both halves are errors now.
   const sourceSystem = typeof data.source_system === 'string' ? data.source_system.trim() : '';
   if (sourceSystem === '') {
-    warnings.push('Missing `source_system` — provenance cannot be traced without it.');
+    errors.push('Missing `source_system` — provenance cannot be traced without it.');
+  } else if (!SOURCE_SYSTEMS.includes(sourceSystem)) {
+    errors.push(
+      `Invalid \`source_system\`: "${sourceSystem}". Permitted: ${SOURCE_SYSTEMS.join(' | ')} (KNOWLEDGE-CAPTURE-OKF.md §3).`
+    );
   }
+
+  // A malformed date is worse than a missing one: it looks like provenance and cannot be compared.
+  const timestamp = typeof data.timestamp === 'string' ? data.timestamp.trim() : '';
+  if (timestamp === '') {
+    warnings.push('Missing `timestamp` — nothing records when this was captured or last verified.');
+  } else if (!ISO_DATE_RE.test(timestamp)) {
+    errors.push(`Invalid \`timestamp\`: "${timestamp}". Use an ISO-8601 date, e.g. 2026-08-10.`);
+  }
+
   if (resource === '') {
     warnings.push('Missing `resource` — set it to a URL, or explicitly to `none`.');
   }

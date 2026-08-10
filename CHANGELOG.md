@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.6.0
+
+### Added
+
+- **`category` — a second classification axis.** `type` says what *shape* a fact is; `category` says
+  what *area* it belongs to. Both are required, because either alone leaves a reader guessing: "a
+  Playbook about release governance" and "a Playbook about naming standards" are the same shape and
+  entirely different things. Shipped default: `Conventions`, `Domain Knowledge`, `External Systems`,
+  `Persona`, `Behavioral` — replaceable wholesale with `categories` in `grimoire.config.json`.
+  Concrete systems and roles (Jira, Jenkins, "Data Engineer") stay in `tags`; baking one
+  organisation's tooling into the vocabulary would make it wrong for everyone else.
+
+- **The capture header.** `transcript.md` now opens with frontmatter recording what no concept can:
+  who was interviewed, **in what role**, when, and against which content and spec versions. A
+  concept could only ever say `source_system: Tribal/interview` — never whose head the fact came
+  from, which is usually the question a capture is reopened to answer. `interviewee_role` is not
+  decoration: the same statement carries different weight from a Solutions Architect than from a QA
+  Engineer. `grimoire compendium-push` refuses a capture whose header is missing or invalid.
+
+- **Per-question category labels** in the transcript
+  (`**Q (base.s5b.q15b)** · *External Systems* — …`), feeding a coverage summary at close. These are
+  best-effort and deliberately **not** gated — blocking an emit over a labelling miss would trade a
+  real output for bookkeeping. The header's `theme` and `categories` are the claim and are required;
+  the labels are the evidence.
+
+- **`base.s1.q0a` / `q0b`** — the interview now asks who it is speaking with and in what role,
+  first. Unlike everything else in the transcript, nobody can reconstruct those later.
+
+### Changed
+
+- **`source_system` is enforced.** Its vocabulary was exported from `tools/lib/okf.js` and
+  referenced nowhere, so `source_system: "Banana Stand"` validated with zero errors *and* zero
+  warnings. Missing or invalid is now an error — provenance that fails open is not provenance.
+- **`timestamp` is validated** as an ISO-8601 date. Malformed is an error, missing is a warning: a
+  date that cannot be compared looks like provenance while supplying none.
+- **Drift-checking generalised to all five vocabularies** (`type`, `category`, `source_system`,
+  `access_state`, `sensitivity`). The old extractor searched for the first line containing "this
+  list is authoritative" and worked only because `.includes` is case-sensitive and §3 happened to
+  precede §8's identically-worded claim — a second documented vocabulary would have silently read
+  the wrong table. Markers are now named per vocabulary.
+
+### Fixed
+
+- **A diverged staging copy was silently ignored.** Once a slug existed in the compendium clone,
+  `compendium-push` never re-imported from the staging root — so editing a capture and re-publishing
+  shipped the stale clone copy. The user would review what they wrote and publish something else.
+  Divergence is now refused with both paths named; `--from` states which copy is authoritative and
+  refreshes. Found while verifying this release, not by a test.
+
 ## 0.5.0
 
 ### Changed — breaking

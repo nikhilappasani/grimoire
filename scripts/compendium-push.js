@@ -38,6 +38,8 @@ import { spawnSync } from 'node:child_process';
 import { parseArgs as parseArgv, argsError } from '../tools/lib/args.js';
 import { readConfig } from '../tools/lib/config.js';
 import { collectFiles } from '../tools/lib/fs-walk.js';
+import { parseFrontmatter } from '../tools/lib/frontmatter.js';
+import { validateCaptureHeader } from '../tools/lib/capture.js';
 import {
   scanForSecrets,
   parseRemoteUrl,
@@ -106,6 +108,14 @@ function git(cloneDir, gitArgs, { allowFail = false, identity = false } = {}) {
     throw new PublishError(`git ${gitArgs.join(' ')} failed: ${(result.stderr || result.stdout || '').trim()}`);
   }
   return result;
+}
+
+/** Whether two capture directories hold different files or different bytes. */
+function directoriesDiffer(a, b) {
+  const filesA = collectFiles(a);
+  const filesB = collectFiles(b);
+  if (filesA.length !== filesB.length || filesA.some((f, i) => f !== filesB[i])) return true;
+  return filesA.some((relative) => !fs.readFileSync(path.join(a, relative)).equals(fs.readFileSync(path.join(b, relative))));
 }
 
 function describeSize(bytes) {
@@ -224,24 +234,72 @@ async function main() {
     // ---- 3. import artifacts -----------------------------------------------------------------
     step = 2;
     const slugInClone = path.join(cloneDir, args.slug);
-    if (!fs.existsSync(slugInClone)) {
-      // LoreWeaver may have written to a local staging root (e.g. ./compendium) on a machine where
-      // the clone didn't exist yet. Import it.
-      const stagingRoot = args.from ?? path.resolve('compendium');
-      const stagingSlug = path.join(stagingRoot, args.slug);
-      if (!fs.existsSync(stagingSlug)) {
-        throw new PublishError(
-          `No artifacts found: neither ${slugInClone} nor ${stagingSlug} exists. ` +
-            'Run the interview first, or pass --from <staging-root>.'
-        );
-      }
+    // LoreWeaver may have written to a local staging root (e.g. ./compendium) on a machine where
+    // the clone didn't exist yet.
+    const stagingRoot = args.from ?? path.resolve('compendium');
+    const stagingSlug = path.join(stagingRoot, args.slug);
+    const inClone = fs.existsSync(slugInClone);
+    const inStaging = fs.existsSync(stagingSlug) && path.resolve(stagingSlug) !== path.resolve(slugInClone);
+
+    if (!inClone && !inStaging) {
+      throw new PublishError(
+        `No artifacts found: neither ${slugInClone} nor ${stagingSlug} exists. ` +
+          'Run the interview first, or pass --from <staging-root>.'
+      );
+    }
+
+    if (!inClone) {
       log(`import    ${stagingSlug} → ${slugInClone}`);
       if (!args.dryRun) fs.cpSync(stagingSlug, slugInClone, { recursive: true });
+    } else if (inStaging) {
+      // Both copies exist. Publishing the clone's copy while the user edits the staging one is a
+      // silent wrong answer — they review what they wrote and ship something else. An explicit
+      // --from says which copy is authoritative; without it, refuse rather than guess.
+      const differs = directoriesDiffer(stagingSlug, slugInClone);
+      if (differs && !args.from) {
+        throw new PublishError(
+          `Two copies of ${args.slug} exist and they differ:\n` +
+            `    staging: ${stagingSlug}\n` +
+            `    clone:   ${slugInClone}\n` +
+            'Refusing to guess which one to publish. Re-run with --from ' +
+            `${stagingRoot} to publish the staging copy, or delete whichever is stale.`
+        );
+      }
+      if (differs) {
+        log(`refresh   ${stagingSlug} → ${slugInClone}`);
+        if (!args.dryRun) {
+          fs.rmSync(slugInClone, { recursive: true, force: true });
+          fs.cpSync(stagingSlug, slugInClone, { recursive: true });
+        }
+      }
     }
     const effectiveSlugDir = fs.existsSync(slugInClone) ? slugInClone : path.join(args.from ?? path.resolve('compendium'), args.slug);
-    if (!fs.existsSync(path.join(effectiveSlugDir, 'transcript.md'))) {
+    const transcriptPath = path.join(effectiveSlugDir, 'transcript.md');
+    if (!fs.existsSync(transcriptPath)) {
       throw new PublishError(`${args.slug}/transcript.md is missing — a capture without a transcript is not publishable.`);
     }
+
+    // A capture that cannot say who was interviewed, when, or what it covered is not reviewable —
+    // and publishing is the point at which it stops being fixable in private.
+    const header = parseFrontmatter(fs.readFileSync(transcriptPath, 'utf8'));
+    if (!header.found) {
+      throw new PublishError(
+        `${args.slug}/transcript.md has no capture header.\n` +
+          'Add the frontmatter block described in OUTPUT-CONTRACT.md §3 — who was interviewed, their\n' +
+          'role, the date, the theme, and the categories covered — then re-run.'
+      );
+    }
+    const headerCheck = validateCaptureHeader(header.data, {
+      slug: args.slug,
+      categories: config.categories,
+    });
+    if (headerCheck.errors.length > 0) {
+      throw new PublishError(
+        `${args.slug}/transcript.md has an invalid capture header:\n` +
+          headerCheck.errors.map((message) => `    ${message}`).join('\n')
+      );
+    }
+    for (const warning of headerCheck.warnings) log(`warn      ${warning}`);
     // Unrelated dirty state outside the slug must never be swept into this commit.
     const dirty = git(cloneDir, ['status', '--porcelain'])
       .stdout.split('\n')

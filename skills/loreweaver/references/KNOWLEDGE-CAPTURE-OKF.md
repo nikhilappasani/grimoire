@@ -71,13 +71,14 @@ to it, so choose the path deliberately. NEVER invent a directory outside this ta
 
 ```markdown
 ---
-type: <Glossary Term | Policy | Playbook | Runbook | Diagram | Process | API | Dataset>
+type: <Glossary Term | Policy | Playbook | Runbook | Reference | Diagram | Process | API | Dataset>
+category: <Conventions | Domain Knowledge | External Systems | Persona | Behavioral>
 title: <human-readable name>
 description: <one line — WHAT this is>
 why: <one line — WHY it matters, or when it applies>
 resource: <absolute URL back to the authoritative source, or omit if none>
 tags: [<domain>, <subdomain>]
-timestamp: <ISO-8601, when captured or last verified>
+timestamp: <ISO-8601 date, when captured or last verified>
 source_system: <Local file | Wiki | Document store | Code | Tribal/interview | Public docs>
 access_state: <extracted | linked | pending>
 sensitivity: <public | internal | confidential>
@@ -98,6 +99,52 @@ book, a specification, an official documentation site, a video series. Its body 
 note on what the source covers and when to reach for it; the content itself stays behind the
 `resource:` link. Without this type, a cited book has to be mislabelled as a `Runbook`, which is how
 a bundle ends up lying about what it contains.
+
+### 3a. Classification — `type` and `category` are different questions
+
+`type` says what **shape** a fact is. `category` says what **area** it belongs to. Both are
+required, because either alone leaves a reader guessing: "a Playbook about release governance" and
+"a Playbook about naming standards" are the same shape and entirely different things.
+
+**`category` vocabulary — this list is authoritative.** Any other value is a validation error.
+
+`Conventions` · `Domain Knowledge` · `External Systems` · `Persona` · `Behavioral`
+
+| Category | Covers |
+|---|---|
+| `Conventions` | How work is done here: coding standards, naming, repository and project layout |
+| `Domain Knowledge` | The business itself: lifecycles, contracts, governance, domain rules |
+| `External Systems` | Systems and tooling the capability depends on but does not own |
+| `Persona` | Knowledge about a role — what it needs, produces, or is accountable for |
+| `Behavioral` | How the capability itself must act: protocols, escalation paths, tone, refusals |
+
+**This list is a default, not a mandate.** An organisation replaces it wholesale with `categories`
+in `grimoire.config.json`. Concrete systems and roles — Jira, Jenkins, "Data Engineer" — are
+**instances**, not categories: they belong in `tags:`. Baking one organisation's tooling into the
+vocabulary makes it wrong for everyone else.
+
+### 3b. Provenance fields
+
+Every one of these is validated. Provenance that fails open is not provenance.
+
+**`source_system` vocabulary — this list is authoritative.** Any other value is a validation error.
+
+`Local file` · `Wiki` · `Document store` · `Code` · `Tribal/interview` · `Public docs`
+
+A shared drive or fileshare is a `Document store` — for tracing a fact, the distinction does not
+change anything.
+
+**`access_state` vocabulary — this list is authoritative.** Any other value is a validation error.
+
+`extracted` · `linked` · `pending`
+
+**`sensitivity` vocabulary — this list is authoritative.** Any other value is a validation error.
+
+`public` · `internal` · `confidential`
+
+`timestamp` is an ISO-8601 **date** (`2026-08-10`), not a full clock time — provenance is dated, not
+timed. A malformed value is an error rather than a warning: a date that cannot be compared looks
+like provenance while providing none.
 
 `type` is the only field OKF strictly requires. The rest are house conventions that make the bundle
 queryable and traceable. `description` and `why` exist because a knowledge base that only says *what*
@@ -160,17 +207,21 @@ just-in-time. Fall back to link-only the moment sensitivity or volatility makes 
 
 ## 8. Field list handed to the generator
 
-For each knowledge item the specification must carry exactly these fields. This list is authoritative;
-`INTERVIEW.md` and `CAPABILITY-SPEC-TEMPLATE.md` reference it rather than restating it.
+For each knowledge item the specification must carry exactly the fields below. **This field list is
+the authoritative one**; `INTERVIEW.md` and `CAPABILITY-SPEC-TEMPLATE.md` reference it rather than
+restating it. The permitted *values* live in §3, §3a and §3b — this table points at them rather than
+repeating them, so there is one place to change when a vocabulary moves.
 
 | Field | Values |
 |---|---|
 | `title` | free text |
 | `type` | the §3 vocabulary |
-| `source_system` | Local file \| Wiki \| Document store \| Code \| Tribal/interview \| Public docs |
+| `category` | the §3a vocabulary |
+| `source_system` | the §3b vocabulary |
 | `resource` | absolute URL, or `none` |
-| `access_state` | extracted \| linked \| pending |
-| `sensitivity` | public \| internal \| confidential |
+| `timestamp` | ISO-8601 date |
+| `access_state` | the §3b vocabulary |
+| `sensitivity` | the §3b vocabulary |
 
 Pending items stay `OPEN:` stubs until the user provides the content.
 

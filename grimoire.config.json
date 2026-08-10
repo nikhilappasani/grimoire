@@ -1,5 +1,5 @@
 {
-  "contentVersion": "0.5.0",
+  "contentVersion": "0.6.0",
   "specVersion": "0.2.0",
 
   "roots": {
@@ -9,6 +9,8 @@
   },
 
   "compendiumRepository": "https://github.com/nikhilappasani/compendium.git",
+
+  "_categories": "Optional. Replaces the shipped category vocabulary wholesale. Concrete systems and roles belong in a concept's `tags`, never here.",
 
   "harnesses": [
     "claude-code",

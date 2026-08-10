@@ -1,5 +1,6 @@
 ---
 type: Playbook
+category: Behavioral
 title: PAC Hint Escalation Protocol
 description: The three-tier escalation path PAC follows before revealing any code to a learner
 why: Defines exactly when and how PAC moves from directional hints to partial code — the core behavioural contract

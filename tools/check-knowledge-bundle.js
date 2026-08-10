@@ -17,7 +17,8 @@ import path from 'node:path';
 
 import { parseFrontmatter } from './lib/frontmatter.js';
 import { findBrokenLinks } from './lib/links.js';
-import { validateConcept, verifyVocabularyAgainstDoc, checkPlacement } from './lib/okf.js';
+import { validateConcept, verifyVocabularyAgainstDoc, checkPlacement, CATEGORIES } from './lib/okf.js';
+import { validateCaptureHeader } from './lib/capture.js';
 import { Report, parseFlags } from './lib/report.js';
 
 const OKF_DOC_RELATIVE = path.join(
@@ -84,10 +85,56 @@ function resolveKnowledgeRoots(root, report) {
   return findKnowledgeDirs(root);
 }
 
+/**
+ * The active category vocabulary: the shipped default unless grimoire.config.json replaces it.
+ * Read here rather than in okf.js so the pure library stays filesystem-free.
+ */
+function resolveCategories(root) {
+  const configPath = path.join(root, 'grimoire.config.json');
+  if (!fs.existsSync(configPath)) return CATEGORIES;
+  try {
+    const configured = JSON.parse(fs.readFileSync(configPath, 'utf8')).categories;
+    return Array.isArray(configured) && configured.length > 0 ? configured : CATEGORIES;
+  } catch {
+    return CATEGORIES; // a broken config is validate-plugin.js's error to report, not ours
+  }
+}
+
+/**
+ * Validate every `<slug>/transcript.md` capture header found beneath the root.
+ *
+ * Captures live next to their knowledge bundles, so the same walk that finds one finds the other:
+ * a bundle at `<x>/knowledge` implies a capture at `<x>/transcript.md`.
+ */
+function checkCaptureHeaders(root, knowledgeDirs, categories, report) {
+  for (const knowledgeDir of knowledgeDirs) {
+    const slugDir = path.dirname(knowledgeDir);
+    const transcript = path.join(slugDir, 'transcript.md');
+    if (!fs.existsSync(transcript)) continue; // a bare knowledge root is not a capture
+
+    const label = path.relative(root, transcript) || transcript;
+    const parsed = parseFrontmatter(fs.readFileSync(transcript, 'utf8'));
+
+    if (!parsed.found) {
+      report.error(label, 'Capture has no header — nothing records who was interviewed, when, or against which versions.');
+      continue;
+    }
+    for (const err of parsed.errors) report.error(label, err.message, err.line);
+
+    const { errors, warnings } = validateCaptureHeader(parsed.data, {
+      slug: path.basename(slugDir),
+      categories,
+    });
+    for (const message of errors) report.error(label, message);
+    for (const message of warnings) report.warn(label, message);
+  }
+}
+
 function main() {
   const flags = parseFlags(process.argv.slice(2));
   const root = path.resolve(flags.positional[0] ?? '.');
   const report = new Report('check-knowledge-bundle');
+  const categories = resolveCategories(root);
 
   const docPath = path.join(root, OKF_DOC_RELATIVE);
   if (!fs.existsSync(docPath)) {
@@ -102,6 +149,8 @@ function main() {
   if (knowledgeDirs.length === 0 && !report.failed) {
     report.notice('knowledge/', 'No knowledge bundle found yet — nothing to check.');
   }
+
+  checkCaptureHeaders(root, knowledgeDirs, categories, report);
 
   for (const dir of knowledgeDirs) {
     const concepts = collectConcepts(dir);
@@ -123,7 +172,7 @@ function main() {
       for (const warning of parsed.warnings) report.warn(label, warning.message, warning.line);
 
       const body = source.split(/\r?\n/).slice(parsed.bodyStartLine - 1).join('\n');
-      const { errors, warnings, notices } = validateConcept({ data: parsed.data, body });
+      const { errors, warnings, notices } = validateConcept({ data: parsed.data, body, categories });
 
       for (const message of errors) report.error(label, message);
       for (const message of warnings) report.warn(label, message);

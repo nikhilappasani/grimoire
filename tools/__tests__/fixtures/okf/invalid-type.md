@@ -1,5 +1,6 @@
 ---
 type: Cheatsheet
+category: Conventions
 title: Deploy Cheatsheet
 description: Quick reference for the deploy sequence.
 why: New engineers need the short version.

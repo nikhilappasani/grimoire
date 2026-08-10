@@ -12,6 +12,11 @@ compendium/
         └── <type-directory>/<concept>.md
 ```
 
+Each concept carries a `type` (what shape it is) and a `category` (what area it concerns), plus
+enforced provenance: `source_system`, `resource`, `timestamp`, `sensitivity`. `transcript.md` opens
+with a capture header recording who was interviewed, in what role, when, and against which versions —
+`grimoire compendium-push` refuses a capture without it.
+
 Concepts are foldered by their `type` — `Reference` goes in `references/`, `Playbook` in
 `playbooks/`, and so on. The full mapping is in
 `skills/loreweaver/references/KNOWLEDGE-CAPTURE-OKF.md` §2, and `grimoire check-knowledge` fails the

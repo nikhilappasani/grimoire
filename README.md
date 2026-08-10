@@ -69,7 +69,7 @@ skip straight to the code and the specification would become a formality nobody 
 
 ## What's in the box
 
-**v0.5.0 — LoreWeaver only.**
+**v0.6.0 — LoreWeaver only.**
 
 LoreWeaver is a structured interview. It asks one question at a time, adapts its questions to the
 kind of work you're describing, and refuses to make things up. When it doesn't know something, it
@@ -318,13 +318,66 @@ and check whether it's still true.
 | `Reference` | `references/` | An external source you cite but don't own — a book, a spec, a docs site |
 | `Diagram` · `Process` · `API` · `Dataset` | `diagrams/` · `processes/` · `apis/` · `datasets/` | |
 
+### Two questions, not one
+
+`type` says what **shape** a fact is. `category` says what **area** it belongs to. Both are required,
+because either alone leaves you guessing — "a Playbook about release governance" and "a Playbook
+about naming standards" are the same shape and completely different things.
+
+| `category` | Covers |
+|---|---|
+| `Conventions` | How work is done here: coding standards, naming, repo and project layout |
+| `Domain Knowledge` | The business itself: lifecycles, contracts, governance, domain rules |
+| `External Systems` | Systems and tooling the capability depends on but doesn't own |
+| `Persona` | Knowledge about a role — what it needs, produces, or is accountable for |
+| `Behavioral` | How the capability itself must act: protocols, escalation, tone, refusals |
+
+**These five are a default, not a mandate.** Replace them wholesale with `categories` in
+`grimoire.config.json`. Your specific systems and roles — Jira, Jenkins, "Data Engineer" — are
+*instances*, not categories: they go in `tags`. Baking one company's tooling into the vocabulary
+makes it wrong for everyone else.
+
 The same sensitivity rule applies throughout: a confidential document is never copied in. It gets a
 short neutral note and a link to where it actually lives.
 
 This whole folder is what gets published for review — see
 [Publishing a capture](#publishing-a-capture).
 
-### 3. The Design Record
+### 3. The capture header — who said this, and when
+
+`transcript.md` opens with a block recording what no individual concept can. A concept can say
+`source_system: Tribal/interview`, but never *whose* head the fact came from — and six months later
+"who do I ask about this?" is usually the question you reopened it for.
+
+```yaml
+---
+slug: nightly-loader
+theme: Domain Knowledge
+categories: [Domain Knowledge, Behavioral, Conventions]
+interviewee: a.mehta
+interviewee_role: Data Engineer
+date: 2026-08-10
+content_version: 0.6.0
+---
+```
+
+`interviewee_role` isn't decoration: the same statement carries different weight from a Solutions
+Architect than from a QA Engineer, and a later reader has no other way to judge it.
+`content_version` lets a capture be read against the questions that existed when it ran.
+
+**Publishing refuses a capture without a valid header** — that's the point after which it stops being
+fixable in private.
+
+Each question in the transcript is also labelled with the category it was probing:
+
+```markdown
+**Q (base.s5b.q15b)** · *External Systems* — Where does that knowledge live?
+```
+
+Those labels are best-effort and never block an emit; they feed a coverage summary at close, so you
+can see that nobody asked about Conventions at all.
+
+### 4. The Design Record
 
 An appendix inside the specification holding the *reasoning* — decisions made, alternatives rejected,
 assumptions resolved. This is why the spec says what it says. It never enters the knowledge base,
@@ -500,7 +553,7 @@ feed it to an agent as the ground truth for building something. Same files, thre
 
 ```json
 {
-  "contentVersion": "0.5.0",
+  "contentVersion": "0.6.0",
   "specVersion": "0.2.0",
   "roots": {
     "specs": "./specs",
@@ -677,12 +730,12 @@ Everyone stays on the same version, and improvements flow through git like any o
 For someone who can't reach your git host:
 
 ```bash
-npm pack                 # produces nikhilappasani-grimoire-0.5.0.tgz
+npm pack                 # produces nikhilappasani-grimoire-0.6.0.tgz
 ```
 
 ```bash
 # They run:
-npm install -g ./nikhilappasani-grimoire-0.5.0.tgz
+npm install -g ./nikhilappasani-grimoire-0.6.0.tgz
 grimoire sync
 grimoire install --target claude-code --home
 ```
@@ -745,7 +798,7 @@ grimoire/
 ### The checks
 
 ```bash
-npm test                # 81 tests: shared parsers, publish rules, and a real end-to-end push
+npm test                # 102 tests: shared parsers, publish rules, and a real end-to-end push
 npm run validate        # structure: manifests, frontmatter, naming, version lockstep
 npm run lint            # skill quality: description, body length, links, self-containment
 npm run check-knowledge # knowledge base: vocabulary, provenance, confidential-is-link-only
@@ -874,9 +927,11 @@ question genuinely doesn't apply, say so — it'll mark it and move on.
 | **Fail closed** | When unsure, stop and mark it rather than guess. |
 | **Compendium** | The capture repo — transcript, supplied documents, and distilled knowledge, one folder per capability. |
 | **Capture** | Everything one interview produced, under one slug. The unit that gets reviewed and merged. |
+| **Capture header** | The frontmatter on `transcript.md` — who was interviewed, in what role, when, against which versions. |
+| **`category`** | What area a fact concerns, as opposed to `type`, which is what shape it is. |
 | **Digest** | A 12-character fingerprint of exactly what would be published. Ties your approval to those exact bytes. |
 | **Slug** | The short kebab-case name of a capability (`nightly-loader`). Used as its folder and its branch name. |
 
 ---
 
-**v0.5.0** · Node ≥ 20 · zero runtime dependencies · [MIT](./LICENSE) · see [CHANGELOG.md](./CHANGELOG.md)
+**v0.6.0** · Node ≥ 20 · zero runtime dependencies · [MIT](./LICENSE) · see [CHANGELOG.md](./CHANGELOG.md)

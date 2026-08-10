@@ -1,5 +1,6 @@
 ---
 type: Reference
+category: Domain Knowledge
 title: Programming Rust, 2nd ed. (Blandy, Orendorff & Tindall)
 description: Deep-dive Rust reference covering systems-level concepts, ownership semantics, and advanced patterns
 why: Complements The Rust Book with deeper explanations of why Rust works the way it does — essential for learners who want to understand, not just use

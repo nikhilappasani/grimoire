@@ -114,6 +114,9 @@ Columns and their permitted values are defined in KNOWLEDGE-CAPTURE-OKF.md §8. 
 ## Appendix A — Design Record (interview provenance — an artifact, not runtime knowledge)
 Captures the rationale the ten sections don't hold, so the specification can be audited and
 regenerated. This never enters the `knowledge/` bundle.
+- Interviewee: <name> — <role they answered in>
+- Interview date: <ISO-8601>
+- Theme: <dominant category> · Categories covered: <every category the interview touched>
 - Bank matched: <bank name> | none (universal fallback used)
 - Key decisions: <decision → why>
 - Alternatives considered and rejected: <option → reason rejected>

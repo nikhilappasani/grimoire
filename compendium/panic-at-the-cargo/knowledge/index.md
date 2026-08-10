@@ -1,5 +1,6 @@
 ---
 type: Glossary Term
+category: Domain Knowledge
 title: Knowledge Index
 description: Entry point for the Grimoire knowledge bundle
 why: Progressive disclosure — PAC loads specific concept files just-in-time rather than inlining all knowledge

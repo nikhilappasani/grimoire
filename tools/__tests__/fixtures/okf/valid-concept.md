@@ -1,5 +1,6 @@
 ---
 type: Glossary Term
+category: Domain Knowledge
 title: Retention Window
 description: The period a record must be kept before it may be purged.
 why: Purging early breaks audit; purging late breaks the storage budget.

@@ -1,5 +1,6 @@
 ---
 type: Runbook
+category: Conventions
 title: Quarter-End Close Runbook
 description: Steps performed to close the reporting period.
 why: The sequence is order-dependent and undocumented outside the wiki.

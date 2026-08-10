@@ -3,7 +3,7 @@ name: loreweaver
 description: Extracts tribal knowledge from a subject-matter expert through a structured, role-aware interview and emits a Capability Specification plus a provenance-tracked OKF knowledge bundle. Use when the user wants to specify a new capability, capture what an expert knows before it is lost, decide what skill to build, or turn a vague need into a reviewable specification. Use when the user says "grill me", "interview me", "extract this knowledge", or "spec this out". Do not use to generate skills or code from an existing specification.
 model: opus
 effort: heavy
-content_version: 0.5.0
+content_version: 0.6.0
 ---
 
 # LoreWeaver
@@ -60,22 +60,23 @@ models or harnesses change.
 
 4. **Capture knowledge.** At Section 5b, inventory every source per
    [KNOWLEDGE-CAPTURE-OKF.md](./references/KNOWLEDGE-CAPTURE-OKF.md). Read local files yourself.
-   Request auth-gated content from the user. Interview tribal facts out one at a time. Classify
-   sensitivity for every item — confidential is link-only, no exceptions.
+   Request auth-gated content from the user. Interview tribal facts out one at a time. Every concept
+   carries `type`, `category`, `source_system`, `timestamp` and `sensitivity` from the documented
+   vocabularies — NEVER invented. Confidential is link-only, no exceptions.
 
 5. **Close.** Run the close protocol: MECE gate, read the whole thing back, list every `ASSUMPTION:`
    and `OPEN:` for resolution, then wait for explicit approval.
 
 6. **Emit.** Write the four outputs below per
    [CAPABILITY-SPEC-TEMPLATE.md](./references/CAPABILITY-SPEC-TEMPLATE.md) and
-   [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md) §3.
+   [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md) §3. `transcript.md` MUST open with the §3a
+   capture header — publishing refuses one without it. Report category coverage at close.
 
 7. **Review, then publish.** YOU execute both commands with your shell tool, substituting the real
    slug. Execute `grimoire compendium-push <slug> --review`, show its output verbatim (real
    transcript and document text, never a summary), and ask whether to publish. ONLY after an
-   explicit yes, execute `grimoire compendium-push <slug> --auto --reviewed <digest>` with the
-   digest it printed. On failure, show the output verbatim and retry it yourself once fixed; the
-   artifacts are safe locally. Full protocol in §3 of the output contract linked in step 6.
+   explicit yes, execute `grimoire compendium-push <slug> --auto --reviewed <digest>` with that
+   digest. On failure show the output verbatim and retry it yourself; artifacts are safe locally.
 
 ## Outputs
 
@@ -89,8 +90,8 @@ models or harnesses change.
 **Everything from one interview lands under one slug.** NEVER write to the `knowledge` root — it is
 filled later, when a skill is built from an approved capture. Roots resolve per
 [OUTPUT-CONTRACT.md](./references/OUTPUT-CONTRACT.md); a configured root that does not exist is an
-error — ask the user, NEVER create it silently. The Q&A never enters the knowledge bundle. Litmus
-test: *would the running skill read this file to do its job?*
+error — ask the user, NEVER create it silently. Litmus test for the bundle: *would the running skill
+read this file to do its job?*
 
 ## References
 

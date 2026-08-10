@@ -20,6 +20,14 @@ that the user finishes unable to name a role-critical question you didn't ask.
 
 ## Section 1 — Metadata
 
+Ask the two identity questions **first**. They populate the capture header
+([OUTPUT-CONTRACT.md](./OUTPUT-CONTRACT.md) §3a), without which the interview cannot be published —
+and unlike everything else here, nobody can reconstruct them later.
+
+- `base.s1.q0a` — "Before we start: **who am I speaking with?** A name or handle is enough — it goes
+  in the record so a future reader knows whose knowledge this is."
+- `base.s1.q0b` — "And **what role are you answering in** — Solutions Architect, Data Engineer, QA,
+  Product? The same answer carries different weight from different chairs, so the record says which."
 - `base.s1.q1` — "In one sentence, what capability do you want to exist?"
 - `base.s1.q2` — "Who are the personas that will invoke it?"
 - `base.s1.q3` — "What domain does it live in?" (e.g. Data Engineering, Developer Experience, Support)
@@ -95,7 +103,9 @@ knowledge inventory is MECE.
 - `base.s5b.q15e` — **Tribal:** interview the fact out, one at a time. Mark unverified facts `OPEN:`
   until confirmed.
 - `base.s5b.q15f` — For each item, capture the field list in
-  [KNOWLEDGE-CAPTURE-OKF.md](./KNOWLEDGE-CAPTURE-OKF.md) §8.
+  [KNOWLEDGE-CAPTURE-OKF.md](./KNOWLEDGE-CAPTURE-OKF.md) §8. `source_system` and `category` are
+  drawn from the vocabularies in §3a and §3b — never invented. A shared drive is a `Document store`.
+  Classify `category` from what the fact is *about*, not from who supplied it.
 - `base.s5b.q15g` — "Does any of this contain **secrets, personal, or regulated data**?" If yes, link
   rather than copy. Never embed sensitive content.
 

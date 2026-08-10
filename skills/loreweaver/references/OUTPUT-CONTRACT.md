@@ -54,6 +54,7 @@ At close, after the user approves the read-back (per
 
 - `compendium/<slug>/transcript.md` — every question and answer, in order, including resolved
   `OPEN:`/`ASSUMPTION:` markers. This is the raw record the Design Record's rationale is built from.
+  It MUST open with the capture header in §3a.
 - `compendium/<slug>/documents/<original-name>` — each document the user supplied, stored as given.
   Apply the same sensitivity rule as knowledge concepts: a document classified confidential, or
   containing secrets or personal data, is **never copied in** — write a short neutral note plus its
@@ -62,6 +63,57 @@ At close, after the user approves the read-back (per
   interview, one per file, in the directory its `type` dictates per
   [KNOWLEDGE-CAPTURE-OKF.md](./KNOWLEDGE-CAPTURE-OKF.md) §2. NEVER invent a directory outside that
   table, and NEVER write these to the `knowledge` root.
+
+### 3a. The capture header
+
+`transcript.md` MUST open with this frontmatter block. A concept can only record
+`source_system: Tribal/interview` — it can never say *whose* head the fact came from, and that is
+usually the question a capture is reopened to answer. The header carries what no concept can.
+
+```yaml
+---
+slug: <the capture's directory name — must match>
+title: <human name of the capability>
+theme: <the dominant category, from KNOWLEDGE-CAPTURE-OKF.md §3a>
+categories: [<every category this interview touched>]
+interviewee: <who answered the questions>
+interviewee_role: <the role they answered in>
+interviewer: LoreWeaver (Grimoire)
+date: <ISO-8601 date of the interview>
+content_version: <the reference bundle version this ran against>
+spec_version: <the specification template version>
+banks_used: [<question banks used>]
+spec: <path to the specification this produced>
+---
+```
+
+`interviewee_role` is not decoration: the same statement means different things from a Solutions
+Architect and from a QA Engineer, and a reader six months later has no other way to weigh it.
+`content_version` lets a capture be read in the context of the questions that existed when it ran.
+
+Every field above is required except `spec` and `banks_used`, which warn. **`grimoire
+compendium-push` refuses to publish a capture whose header is missing or invalid** — publishing is
+the point after which it stops being fixable in private.
+
+The existing human-readable summary lines stay directly beneath the block; the frontmatter is
+additive, not a replacement.
+
+### 3b. Per-question categories
+
+Label each question with the category it was probing, using the existing annotation convention:
+
+```markdown
+**Q (base.s5b.q15b)** · *External Systems* — Where does that knowledge live?
+```
+
+Use `—` where a question is pure metadata and no category applies. These labels are **best-effort
+and never gated**: they feed the coverage summary at close, and blocking an emit over a labelling
+miss would trade a real output for a bookkeeping detail. The header's `theme` and `categories` ARE
+required — they are the claim; the labels are the evidence.
+
+At close, report which categories the interview covered and which it never touched. An untouched
+category is not automatically a defect — most capabilities do not span all five — but it is the
+cheapest way to notice that nobody asked about Conventions at all.
 
 Then publish. The user runs nothing, but they **approve the content first** — two commands:
 

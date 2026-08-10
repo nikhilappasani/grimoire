@@ -81,10 +81,19 @@ Duplication across reference files drifts silently. Each of these has exactly on
 
 | Fact | Single source | Everyone else |
 |---|---|---|
-| OKF `type` vocabulary | `KNOWLEDGE-CAPTURE-OKF.md` | references it by name |
+| OKF `type` vocabulary | `KNOWLEDGE-CAPTURE-OKF.md` §3 | references it by name |
+| `category` vocabulary | `KNOWLEDGE-CAPTURE-OKF.md` §3a | references it by name |
+| Provenance vocabularies | `KNOWLEDGE-CAPTURE-OKF.md` §3b | references them by name |
+| Capture header contract | `OUTPUT-CONTRACT.md` §3a | references it by name |
 | Rules of the grill | `GRILL-DISCIPLINE.md` | references it by name |
 | Nine evaluation dimensions | `CAPABILITY-SPEC-TEMPLATE.md` §8b | references it by name |
-| Knowledge-item field list | `KNOWLEDGE-CAPTURE-OKF.md` | references it by name |
+| Knowledge-item field list | `KNOWLEDGE-CAPTURE-OKF.md` §8 | references it by name |
+
+Every vocabulary mirrored in `tools/lib/okf.js` is drift-checked against its documented list by
+`verifyVocabularyAgainstDoc`, keyed on a **named** marker
+(``**`<name>` vocabulary — this list is authoritative.**``). A mirrored list nobody checks is the
+defect this guards against; a single unnamed marker was the earlier version of the same defect, and
+it matched whichever authoritative claim appeared first in the file.
 
 ## 6. Output roots
 

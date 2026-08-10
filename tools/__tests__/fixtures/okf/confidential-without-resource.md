@@ -1,5 +1,6 @@
 ---
 type: Policy
+category: Domain Knowledge
 title: Vendor Rate Card
 description: Negotiated per-unit pricing by vendor tier.
 why: Determines which vendor a request is routed to.
