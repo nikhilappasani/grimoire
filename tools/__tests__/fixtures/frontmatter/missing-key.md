@@ -1,6 +1,6 @@
 ---
 description: Has a description but no name. Use when testing required-key detection.
-model: sonnet
+owner: platform-team
 ---
 
 # Missing Key

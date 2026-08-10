@@ -41,6 +41,15 @@
   precede §8's identically-worded claim — a second documented vocabulary would have silently read
   the wrong table. Markers are now named per vocabulary.
 
+### Removed
+
+- **`model:` and `effort:` from skill frontmatter.** `effort` did nothing at all: `lint-skills.js`
+  validated it, but `sync-skills.js` never propagated it, so no harness ever saw it. `model: opus`
+  did work, and that was the problem — it pinned one vendor's model tier inside a skill this repo
+  claims is harness-neutral, and it existed only to be validated against a hardcoded
+  `ALLOWED_MODELS` list. Each harness now uses its own default. The frontmatter allow-list is
+  `name`, `description`, `content_version`, `disable-model-invocation`.
+
 ### Fixed
 
 - **A diverged staging copy was silently ignored.** Once a slug existed in the compendium clone,

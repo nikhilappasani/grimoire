@@ -1,7 +1,7 @@
 ---
 name: valid-skill
 description: A well-formed skill. Use when testing the happy path.
-model: sonnet
+owner: platform-team
 tags: [alpha, beta]
 ---
 

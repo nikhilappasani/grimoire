@@ -1,10 +1,10 @@
 /**
  * OKF concept rules.
  *
- * KNOWLEDGE-CAPTURE-OKF.md is the single source for the `type` vocabulary (correction M-1). The
- * vocabulary is mirrored here so validation stays deterministic and dependency-free — and
- * `verifyVocabularyAgainstDoc` fails loudly if the two ever drift. A mirrored list nobody checks is
- * exactly the defect M-1 was raised against.
+ * KNOWLEDGE-CAPTURE-OKF.md is the single source for every vocabulary here. Each is mirrored in this
+ * file so validation stays deterministic and dependency-free, and `verifyVocabularyAgainstDoc`
+ * fails loudly if the two ever drift. A mirrored list nobody checks is the defect this guards
+ * against.
  */
 
 export const TYPE_VOCABULARY = [
@@ -91,7 +91,7 @@ export const CATEGORIES = [
 export const ACCESS_STATES = ['extracted', 'linked', 'pending'];
 export const SENSITIVITIES = ['public', 'internal', 'confidential'];
 
-/** ISO-8601 calendar date. Deliberately not a full timestamp — provenance is dated, not clocked. */
+/** ISO-8601 calendar date, not a full timestamp: provenance is dated, not clocked. */
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
@@ -180,9 +180,8 @@ export function validateConcept({ data, body, categories = CATEGORIES }) {
     );
   }
 
-  // Category is an error rather than a warning, like type. A bundle where classification is
-  // optional is a bundle where it is absent, and the whole point is being able to see what a
-  // capture covered.
+  // An error rather than a warning, like type. Classification that is optional goes missing, and
+  // seeing what a capture covered is the reason the field exists.
   const category = typeof data.category === 'string' ? data.category.trim() : '';
   if (category === '') {
     errors.push('Missing required field `category` (KNOWLEDGE-CAPTURE-OKF.md §3).');

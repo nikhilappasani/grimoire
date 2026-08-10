@@ -196,7 +196,7 @@ test('--review shows the actual content and a digest, and pushes nothing', (t) =
 
   const result = runPush(clone, ['shown', '--review']);
   assert.equal(result.status, 0, result.stderr);
-  // The content itself, not just the filename — that distinction is the whole point.
+  // The content itself, not just the filename. That distinction is what --review exists for.
   assert.match(result.stdout, /Q: what breaks first\?/);
   assert.match(result.stdout, /A: the nightly loader\./);
   assert.match(result.stdout, /shown\/documents\/notes\.md/);

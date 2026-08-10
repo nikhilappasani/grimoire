@@ -183,7 +183,7 @@ async function main() {
 
   try {
     // ---- 1. resolve --------------------------------------------------------------------------
-    // Inside the try on purpose: a malformed flag must produce the same step report as any other
+    // Parsed inside the try so a malformed flag produces the same step report as any other
     // failure, not an unhandled exception and a stack trace.
     args = parseArgs(process.argv.slice(2));
     if (!args.slug) throw new PublishError('A slug is required: grimoire compendium-push <slug>');

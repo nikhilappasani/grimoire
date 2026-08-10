@@ -33,7 +33,7 @@ const ARG_SPEC = {
 /**
  * Parse a SKILL.md into the frontmatter values sync cares about plus its body text.
  *
- * Uses the shared parser rather than a local one on purpose. `frontmatter.js` is the single
+ * Uses the shared parser rather than a local one. `frontmatter.js` is the single
  * implementation the validators run, so parsing here with anything else means `grimoire lint` and
  * `grimoire sync` can disagree about what a file says — and the generated artifact, not the source
  * the validator read, is what a harness actually loads.
@@ -57,7 +57,7 @@ function readSkill(source) {
  * quoted and escaped. Harness-specific keys are dropped rather than passed through as unknowns.
  */
 function renderFrontmatter(data, skillName) {
-  const keep = ['name', 'description', 'model'];
+  const keep = ['name', 'description'];
   const out = ['---'];
   for (const key of keep) {
     const value = data[key];

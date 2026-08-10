@@ -15,7 +15,7 @@ test('parses a well-formed block', () => {
   assert.equal(result.found, true);
   assert.equal(result.errors.length, 0, JSON.stringify(result.errors));
   assert.equal(result.data.name, 'valid-skill');
-  assert.equal(result.data.model, 'sonnet');
+  assert.equal(result.data.owner, 'platform-team');
   assert.deepEqual(result.data.tags, ['alpha', 'beta']);
 });
 

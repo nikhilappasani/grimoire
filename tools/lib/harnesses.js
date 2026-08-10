@@ -26,7 +26,7 @@ export function harnessNames() {
 /**
  * Whether `name` is a known harness.
  *
- * Uses `hasOwnProperty` rather than `in` or a truthiness check on purpose: a harness name reaches
+ * Uses `hasOwnProperty` rather than `in` or a truthiness check: a harness name reaches
  * `install.js` from `--target` and becomes a path segment, so `"constructor"` or `"__proto__"` must
  * answer false here rather than resolving through the prototype chain.
  */

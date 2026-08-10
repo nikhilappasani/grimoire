@@ -33,7 +33,7 @@ function loadConcept(name) {
   return validateConcept({ data: parsed.data, body });
 }
 
-test('the code vocabulary matches the reference document (M-1 single source)', () => {
+test('the code vocabulary matches the reference document', () => {
   const doc = fs.readFileSync(OKF_DOC, 'utf8');
   const result = verifyVocabularyAgainstDoc(doc);
 

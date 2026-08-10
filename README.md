@@ -541,11 +541,11 @@ Grimoire writes standard markdown links (`[Text](../path/file.md)`) because thos
 GitHub, in VS Code, and in any other editor. Obsidian reads them fine, but with wikilinks enabled it
 will *write* new links in its own format, and those won't render outside Obsidian.
 
-### The bigger idea
+### Why plain files matter
 
-Your knowledge base becomes a second brain that isn't just yours — it's structured, sourced, and
-machine-readable. You can browse it as notes in Obsidian, review changes to it in pull requests, and
-feed it to an agent as the ground truth for building something. Same files, three audiences.
+The same files serve three audiences without conversion. You read them as notes in Obsidian, your
+team reviews changes to them in pull requests, and an agent reads them as ground truth when building
+something. No export step, no format that only one tool understands.
 
 ## Configuration
 

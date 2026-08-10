@@ -7,7 +7,7 @@
  * open is not a rule.
  *
  * Also verifies the `type` vocabulary in tools/lib/okf.js still matches the reference document, so
- * the M-1 single-source guarantee cannot silently rot.
+ * the single-source guarantee cannot silently rot.
  *
  * Usage: node tools/check-knowledge-bundle.js [root] [--json] [--quiet]
  */

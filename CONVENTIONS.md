@@ -52,7 +52,7 @@ resolved per §6 — the paths above are only the defaults.
 
 - **Under 100 lines.** Detail goes to `references/`, loaded on demand. A skill body that must be read
   in full on every invocation is a tax on every session that never uses it.
-- **Frontmatter is an allow-list:** `name`, `description`, `model`, `effort`, `content_version`,
+- **Frontmatter is an allow-list:** `name`, `description`, `content_version`,
   `disable-model-invocation`. Anything else is a lint error.
 - **`description` is the selection object** — the only field an agent sees when choosing a skill.
   - Max 1024 characters, third person.

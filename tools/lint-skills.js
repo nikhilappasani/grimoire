@@ -18,14 +18,9 @@ import { Report, parseFlags } from './lib/report.js';
 const ALLOWED_KEYS = new Set([
   'name',
   'description',
-  'model',
-  'effort',
   'content_version',
   'disable-model-invocation',
 ]);
-
-const ALLOWED_MODELS = new Set(['haiku', 'sonnet', 'opus', 'fable']);
-const ALLOWED_EFFORT = new Set(['light', 'standard', 'heavy']);
 
 const MAX_DESCRIPTION = 1024;
 const MAX_BODY_LINES = 100;
@@ -104,13 +99,6 @@ function lintSkill(skillDir, report, root) {
     if (/\bI \b|\bwe\b/i.test(description)) {
       report.warn(label, 'Description should be third person.');
     }
-  }
-
-  if (parsed.data.model && !ALLOWED_MODELS.has(parsed.data.model)) {
-    report.error(label, `Unknown model "${parsed.data.model}". Permitted: ${[...ALLOWED_MODELS].join(' | ')}.`);
-  }
-  if (parsed.data.effort && !ALLOWED_EFFORT.has(parsed.data.effort)) {
-    report.error(label, `Unknown effort "${parsed.data.effort}". Permitted: ${[...ALLOWED_EFFORT].join(' | ')}.`);
   }
 
   const lines = source.split(/\r?\n/);

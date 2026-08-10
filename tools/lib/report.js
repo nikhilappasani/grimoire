@@ -69,7 +69,7 @@ export class Report {
 /**
  * Flag parsing for the validators, over the shared parser in `args.js`.
  *
- * Validators are non-strict on purpose: they are run by `preflight` and by CI wrappers that may
+ * Validators are non-strict: they are run by `preflight` and by CI wrappers that may
  * pass flags this build does not know, and refusing to validate because of an unrecognized flag
  * would turn a cosmetic mismatch into a red build.
  */

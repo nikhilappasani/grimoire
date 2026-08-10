@@ -1,7 +1,7 @@
 ---
 name: dupe
 description: First value.
-model: sonnet
+owner: platform-team
 description: Second value wins silently unless the parser warns.
 ---
 
