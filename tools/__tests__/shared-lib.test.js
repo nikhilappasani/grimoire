@@ -156,3 +156,11 @@ test('a capture is found by its transcript, not by having a knowledge bundle', (
   assert.match(result.stdout, /no-concepts[/\\]transcript\.md/);
   assert.match(result.stdout, /with-concepts[/\\]transcript\.md/);
 });
+
+test('the shipped package declares no runtime dependencies', () => {
+  // "Zero runtime dependencies" is a front-page claim, and a stray `npm install` once added a
+  // self-dependency that reached the built tarball unnoticed.
+  const pkg = JSON.parse(fs.readFileSync(path.join(PACKAGE_ROOT, 'package.json'), 'utf8'));
+  assert.deepEqual(Object.keys(pkg.dependencies ?? {}), []);
+  assert.equal(pkg.dependencies?.[pkg.name], undefined, 'the package must not depend on itself');
+});

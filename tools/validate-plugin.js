@@ -65,6 +65,21 @@ function main() {
     if (pkg.name && !PACKAGE_NAME_RE.test(pkg.name)) {
       report.error('package.json', `Invalid package name "${pkg.name}" — lowercase kebab-case only.`);
     }
+
+    // "Zero runtime dependencies" is a claim the README makes on the front page, so it is checked
+    // rather than trusted. A stray `npm install <something>` adds a dependency block that nobody
+    // reads again, and the package ships carrying it.
+    const runtimeDeps = Object.keys(pkg.dependencies ?? {});
+    if (runtimeDeps.length > 0) {
+      report.error(
+        'package.json',
+        `Runtime dependencies present: ${runtimeDeps.join(', ')}. Grimoire ships with none — ` +
+          'the README says so on the front page. Remove them, or change the claim.'
+      );
+    }
+    if (pkg.dependencies?.[pkg.name] || pkg.devDependencies?.[pkg.name]) {
+      report.error('package.json', `The package depends on itself (${pkg.name}). Almost certainly a stray install.`);
+    }
   }
 
   const config = readJson(path.join(root, 'grimoire.config.json'), report, 'grimoire.config.json');

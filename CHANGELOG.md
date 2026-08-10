@@ -65,6 +65,13 @@
   produces no concepts and so slipped past the gate entirely. Captures are now found by their
   transcript.
 
+- **The package declared a dependency on itself.** A stray `npm install @nikhilappasani/grimoire`
+  left `"@nikhilappasani/grimoire": "^0.4.1"` in `dependencies`, and it reached the built tarball —
+  which would have made every install pull an older copy of itself, and made the README's front-page
+  "zero runtime dependencies" claim false. Removed from `package.json` and `package-lock.json`.
+  `validate-plugin.js` now fails on any runtime dependency, so the claim is checked rather than
+  trusted.
+
 - **A diverged staging copy was silently ignored.** Once a slug existed in the compendium clone,
   `compendium-push` never re-imported from the staging root — so editing a capture and re-publishing
   shipped the stale clone copy. The user would review what they wrote and publish something else.

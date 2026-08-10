@@ -799,7 +799,7 @@ grimoire/
 ### The checks
 
 ```bash
-npm test                # 106 tests: shared parsers, publish rules, and a real end-to-end push
+npm test                # 107 tests: shared parsers, publish rules, and a real end-to-end push
 npm run validate        # structure: manifests, frontmatter, naming, version lockstep
 npm run lint            # skill quality: description, body length, links, self-containment
 npm run check-knowledge # knowledge base: vocabulary, provenance, confidential-is-link-only
